@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="src" path="resources"/>
+	<classpathentry kind="lib" path="lib/rhino1_7R2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/artoolkitplus-2.3.1-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/artoolkitplus-platform-2.3.1-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/ffmpeg-4.2.1-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/ffmpeg-platform-4.2.1-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/flandmark-1.07-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/flandmark-platform-1.07-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/flycapture-2.13.3.31-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/flycapture-platform-2.13.3.31-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/javacpp-1.5.2.jar" sourcepath="/tmp/.org.sf.feeling.decompiler1584973273513/source/javacpp-1.5.2-sources.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/javacv-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/javacv-platform-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/leptonica-1.78.0-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/leptonica-platform-1.78.0-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/libdc1394-2.2.6-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/libdc1394-platform-2.2.6-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/libfreenect-0.5.7-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/libfreenect-platform-0.5.7-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/libfreenect2-0.2.0-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/libfreenect2-platform-0.2.0-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/librealsense-1.12.4-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/librealsense-platform-1.12.4-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/librealsense2-2.29.0-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/librealsense2-platform-2.29.0-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/openblas-0.3.7-1.5.2.jar" sourcepath="/root/.m2/repository/org/bytedeco/openblas/0.3.7-1.5.2/openblas-0.3.7-1.5.2-sources.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/openblas-platform-0.3.7-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/opencv-4.1.2-1.5.2.jar" sourcepath="/tmp/.org.sf.feeling.decompiler1584973273513/source/opencv-4.1.2-1.5.2-sources.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/opencv-platform-4.1.2-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/tesseract-4.1.0-1.5.2.jar" sourcepath="/tmp/.org.sf.feeling.decompiler1584973273513/source/tesseract-4.1.0-1.5.2-sources.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/tesseract-platform-4.1.0-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/videoinput-0.200-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/videoinput-platform-0.200-1.5.2.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/linux-x86_64/artoolkitplus-2.3.1-1.5.2-linux-x86_64.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/linux-x86_64/ffmpeg-4.2.1-1.5.2-linux-x86_64.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/linux-x86_64/flandmark-1.07-1.5.2-linux-x86_64.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/linux-x86_64/flycapture-2.13.3.31-1.5.2-linux-x86_64.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/linux-x86_64/leptonica-1.78.0-1.5.2-linux-x86_64.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/linux-x86_64/libdc1394-2.2.6-1.5.2-linux-x86_64.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/linux-x86_64/libfreenect-0.5.7-1.5.2-linux-x86_64.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/linux-x86_64/libfreenect2-0.2.0-1.5.2-linux-x86_64.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/linux-x86_64/librealsense-1.12.4-1.5.2-linux-x86_64.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/linux-x86_64/librealsense2-2.29.0-1.5.2-linux-x86_64.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/linux-x86_64/openblas-0.3.7-1.5.2-linux-x86_64.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/linux-x86_64/opencv-4.1.2-1.5.2-linux-x86_64.jar"/>
+	<classpathentry kind="lib" path="lib/javacv/linux-x86_64/tesseract-4.1.0-1.5.2-linux-x86_64.jar"/>
+	<classpathentry kind="lib" path="lib/log4j-api-2.7.jar"/>
+	<classpathentry kind="lib" path="lib/log4j-core-2.7.jar"/>
+	<classpathentry kind="lib" path="lib/log4j-slf4j-impl-2.7.jar"/>
+	<classpathentry kind="lib" path="lib/slf4j-api-1.7.21.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
