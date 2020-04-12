@@ -1,157 +1,94 @@
 package com.pcr.common.nio.core;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.util.Iterator;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.pcr.common.nio.decode.ByteArrayPacketDecoder;
-import com.pcr.util.mine.Misc;
-import com.pcr.util.mine.Strings;
 
 
-public class NIOClient<C extends ChannelContext, P> extends Thread implements Shutdownable {
-    static final Logger logger = LoggerFactory.getLogger(NIOClient.class);
-
-    public static void main(String[] args) throws Exception {
-        ExecutorService executor = Executors.newFixedThreadPool(10);
-        ChannelContextAllocator<ChannelContext> allocator = ChannelContext::new;
-        PacketDecoder<ChannelContext, byte[]> decoder = new ByteArrayPacketDecoder<>();
-        ChannelHandler<ChannelContext, byte[]> handler =
-                new ChannelHandler<ChannelContext, byte[]>() {
-                    @Override
-                    public void onStartup(Shutdownable sd) {
-                        logger.info("client startup OK");
-                    }
-
-                    @Override
-                    public void onRead(ChannelContext ctx, byte[] packet) throws IOException {
-                        logger.info("channel {} read {} bytes", ctx, packet.length);
-                        Strings.print(packet);
-                    }
-
-                    @Override
-                    public void onConnect(ChannelContext ctx) throws IOException {
-                        logger.info("channel {} has been connected", ctx);
-                    }
-
-                    @Override
-                    public void onClose(ChannelContext ctx) throws IOException {
-                        logger.info("channel {} has been closed", ctx);
-                    }
-                };
-        NIOClient<ChannelContext, byte[]> client =
-                new NIOClient<>("127.0.0.1", 9009, 4096, executor, allocator, decoder, handler);
-        client.start();
-        // client.shutdown();
-    }
+public class NIOClient extends NIOBase {
+    // static final Logger logger = LoggerFactory.getLogger(NIOClient.class);
+    //
+    // public static void main(String[] args) throws Exception {
+    // ByteBufferPool bufferPool = new ByteBufferPool(4096);
+    // ExecutorService executor = Executors.newFixedThreadPool(10);
+    // ChannelHandler encoder = new ByteArrayEncoder();
+    // ChannelHandler decoder = new ByteArrayDecoder();
+    // EventHandler handler = new EventHandler() {
+    // @Override
+    // public void onStartup(NIOBase obj) throws IOException {
+    // logger.info("client startup OK");
+    // }
+    //
+    // @Override
+    // public void onRead(ChannelContext ctx, Object packet) throws IOException {
+    // byte[] data = (byte[]) packet;
+    // logger.info("channel {} read {} bytes", ctx, data.length);
+    // Strings.print(data);
+    // }
+    //
+    // @Override
+    // public void onConnect(ChannelContext ctx) throws IOException {
+    // logger.info("channel {} has been connected", ctx);
+    //
+    // new Thread() {
+    // public void run() {
+    // try {
+    // Misc.sleep(1000);
+    // ctx.write(ByteData.valueOf(new File("/root/a.txt")).toByteArray());
+    // Misc.sleep(5000);
+    // ctx.write(ByteData.valueOf(new File("/root/a.txt")).toByteArray());
+    // } catch (IOException e) {
+    // // TODO Auto-generated catch block
+    // e.printStackTrace();
+    // }
+    // };
+    // }.start();
+    // }
+    //
+    // @Override
+    // public void onClose(ChannelContext ctx) throws IOException {
+    // logger.info("channel {} has been closed", ctx);
+    // }
+    // };
+    // NIOClient client =
+    // new NIOClient("127.0.0.1", 9009, bufferPool, executor, encoder, decoder, handler);
+    // client.start();
+    // // client.shutdown();
+    // }
 
     private String host;
     private int port;
-    private int bufferSize;
-    private ExecutorService executor;
-    private ChannelContextAllocator<C> allocator;
-    private PacketDecoder<C, P> decoder;
-    private ChannelHandler<C, P> handler;
 
-    private boolean isOpen = true;
-    private SocketChannel sc;
-    private Selector selector;
-    private ByteBufferPool bufferPool;
-    private PacketProcesser<C, P> processer = this::processPacket;
-
-    public NIOClient(String host, int port, int bufferSize, ExecutorService executor,
-            ChannelContextAllocator<C> allocator, PacketDecoder<C, P> decoder,
-            ChannelHandler<C, P> handler) {
+    public NIOClient(String host, int port, ByteBufferPool bufferPool, ExecutorService executor,
+            ChannelHandler encoder, ChannelHandler decoder, EventHandler handler) {
+        super(bufferPool, executor, encoder, decoder, handler);
         this.host = host;
         this.port = port;
-        this.bufferSize = bufferSize;
-        this.executor = executor;
-        this.allocator = allocator;
-        this.decoder = decoder;
-        this.handler = handler;
     }
 
     @Override
-    public void run() {
-        try {
-            bufferPool = new ByteBufferPool(bufferSize);
-            selector = Selector.open();
-            sc = SocketChannel.open();
+    protected Closeable openChannel() throws IOException {
+        SocketChannel sc = SocketChannel.open();
+        sc.configureBlocking(false);
+        sc.connect(new InetSocketAddress(host, port));
+        sc.register(selector, SelectionKey.OP_CONNECT);
+        return sc;
+    }
+
+    @Override
+    protected SocketChannel processConnect(SelectionKey key) throws IOException {
+        if (key.isConnectable()) {
+            key.interestOps(key.interestOps() & ~SelectionKey.OP_CONNECT);
+            SocketChannel sc = (SocketChannel) key.channel();
+            if (sc.isConnectionPending()) {
+                sc.finishConnect();
+            }
             sc.configureBlocking(false);
-            sc.connect(new InetSocketAddress(host, port));
-            sc.register(selector, SelectionKey.OP_CONNECT);
-            handler.onStartup(this);
-            while (isOpen) {
-                selector.select();
-                Set<SelectionKey> selectionKeys = selector.selectedKeys();
-                Iterator<SelectionKey> iterator = selectionKeys.iterator();
-                while (iterator.hasNext()) {
-                    SelectionKey key = iterator.next();
-                    iterator.remove();
-                    if (key.isConnectable()) {
-                        if (sc != key.channel())
-                            throw new IOException();
-                        if (sc.isConnectionPending()) {
-                            sc.finishConnect();
-                        }
-                        sc.configureBlocking(false);
-                        C ctx = allocator.allocate();
-                        ctx.channel = sc;
-                        ctx.bufferPool = bufferPool;
-                        ctx.buffers.add(bufferPool.apply());
-                        handler.onConnect(ctx);
-                        if (sc.isOpen())
-                            sc.register(selector, SelectionKey.OP_READ, ctx);
-                        else
-                            handler.onClose(ctx);
-                    } else if (key.isReadable()) {
-                        @SuppressWarnings("unchecked")
-                        C ctx = (C) key.attachment();
-                        if (ctx.channel != key.channel())
-                            throw new IOException();
-                        boolean result;
-                        try {
-                            result = decoder.handleRead(ctx, processer);
-                        } catch (Exception e) {
-                            result = false;
-                            logger.error(e.getMessage(), e);
-                        }
-                        if (!result) {
-                            handler.onClose(ctx);
-                            Misc.close(ctx);
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            logger.error(e.getMessage(), e);
+            return sc;
         }
-        shutdown();
-    }
-
-    private void processPacket(C ctx, P packet) {
-        executor.execute(() -> {
-            try {
-                handler.onRead(ctx, packet);
-            } catch (Exception e) {
-                logger.error(e.getMessage(), e);
-            }
-        });
-    }
-
-    @Override
-    public void shutdown() {
-        isOpen = false;
-        Misc.close(selector);
-        Misc.close(sc);
+        return null;
     }
 }

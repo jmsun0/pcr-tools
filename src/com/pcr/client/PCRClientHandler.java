@@ -3,17 +3,16 @@ package com.pcr.client;
 import java.io.File;
 import java.io.IOException;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.pcr.common.nio.core.ChannelHandler;
-import com.pcr.common.nio.core.Shutdownable;
+import com.pcr.common.core.ByteData;
+import com.pcr.common.core.Strings;
+import com.pcr.common.logger.Logger;
+import com.pcr.common.logger.LoggerFactory;
+import com.pcr.common.nio.core.ChannelContext;
+import com.pcr.common.nio.core.EventHandler;
+import com.pcr.common.nio.core.NIOBase;
 import com.pcr.common.pcr.PCRClient;
-import com.pcr.common.pcr.PCRContext;
-import com.pcr.util.mine.ByteData;
-import com.pcr.util.mine.Strings;
 
-public class PCRClientHandler implements ChannelHandler<PCRContext, byte[]> {
+public class PCRClientHandler extends EventHandler {
     public static void main(String[] args) {
         PCRClient client = new PCRClient("127.0.0.1", 9009, new PCRClientHandler());
         client.start();
@@ -22,25 +21,29 @@ public class PCRClientHandler implements ChannelHandler<PCRContext, byte[]> {
     static final Logger logger = LoggerFactory.getLogger(PCRClientHandler.class);
 
     @Override
-    public void onStartup(Shutdownable sd) {
-        logger.info(sd.getClass().getSimpleName() + " startup OK");
+    public void onStartup(NIOBase obj) {
+        logger.info(obj.getClass().getSimpleName() + " startup OK");
     }
 
     @Override
-    public void onRead(PCRContext ctx, byte[] packet) throws IOException {
-        logger.info("channel {} read {} bytes", ctx, packet.length);
-        Strings.print(packet);
+    public void onRead(ChannelContext ctx, Object packet) throws IOException {
+        byte[] data = (byte[]) packet;
+        logger.info("channel {} read {} bytes", ctx, data.length);
+        Strings.print(data);
     }
 
     @Override
-    public void onConnect(PCRContext ctx) throws IOException {
+    public void onConnect(ChannelContext ctx) throws IOException {
         logger.info("channel {} has been connected", ctx);
         ctx.write(ByteData.valueOf(new File("/root/tmp.txt")).toByteArray());
+        ctx.write("hello".getBytes());
+        // ctx.write("world".getBytes());
+
         // ctx.close();
     }
 
     @Override
-    public void onClose(PCRContext ctx) throws IOException {
+    public void onClose(ChannelContext ctx) throws IOException {
         logger.info("channel {} has been closed", ctx);
     }
 }

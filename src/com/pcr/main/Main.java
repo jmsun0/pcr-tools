@@ -1,6 +1,6 @@
 package com.pcr.main;
 
-import com.pcr.util.cmdline.CmdLineParser;
+import com.pcr.common.cmdline.CmdLineParser;
 
 public class Main {
     public static void main(String[] args) {

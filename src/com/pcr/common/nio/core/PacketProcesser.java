@@ -1,5 +1,5 @@
 package com.pcr.common.nio.core;
 
-public interface PacketProcesser<C extends ChannelContext, P> {
-    public void process(C ctx, P packet);
+public interface PacketProcesser {
+    public void process(ChannelContext ctx, Object packet);
 }

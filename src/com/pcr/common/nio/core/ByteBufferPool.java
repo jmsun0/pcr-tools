@@ -1,8 +1,8 @@
 package com.pcr.common.nio.core;
 
 import java.nio.ByteBuffer;
-import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class ByteBufferPool {
     private int bufferSize;
@@ -10,7 +10,7 @@ public class ByteBufferPool {
 
     public ByteBufferPool(int bufferSize) {
         this.bufferSize = bufferSize;
-        this.buffers = new LinkedList<>();
+        this.buffers = new ConcurrentLinkedQueue<>();
     }
 
     public ByteBuffer apply() {
@@ -21,8 +21,6 @@ public class ByteBufferPool {
     }
 
     public void recycle(ByteBuffer buffer) {
-        if (buffer.capacity() != bufferSize)
-            throw new IllegalArgumentException();
         buffer.clear();
         buffers.offer(buffer);
     }

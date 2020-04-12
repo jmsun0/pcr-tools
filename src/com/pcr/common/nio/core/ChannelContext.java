@@ -3,28 +3,63 @@ package com.pcr.common.nio.core;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
-import com.pcr.util.mine.Misc;
+import com.pcr.common.core.Misc;
 
 public class ChannelContext implements Closeable {
     public SocketChannel channel;
-    public List<ByteBuffer> buffers = new ArrayList<>();
+    public Selector selector;
+    public SelectionKey key;
     public ByteBufferPool bufferPool;
-    public int state = 0;
-    public int currentPacketSize = -1;
-    public int headerIndex = 0;
-    public boolean continueRead;
+
+    public ChannelHandler decoder;// 读处理器
+    public PacketProcesser processer;// 消息输出器
+    public ByteBuffer readBuffer;// 读取缓存
+    public Object decodeCotext;// 解码上下文
+
+    public ChannelHandler encoder;// 写处理器
+    public Queue<Object> writeQueue;// 消息输入队列
+    public ByteBuffer writeBuffer;// 写入缓存
+    public Object encodeCotext;// 编码上下文
+
+    public ChannelContext(SocketChannel channel, Selector selector, SelectionKey key,
+            ChannelHandler encoder, ChannelHandler decoder, ByteBufferPool bufferPool,
+            PacketProcesser processer) {
+        this.channel = channel;
+        this.selector = selector;
+        this.key = key;
+        this.encoder = encoder;
+        this.decoder = decoder;
+        this.bufferPool = bufferPool;
+        this.processer = processer;
+        this.readBuffer = bufferPool.apply();
+        this.writeBuffer = bufferPool.apply();
+        this.writeQueue = new ConcurrentLinkedQueue<>();
+        writeBuffer.position(writeBuffer.limit());
+    }
+
+    public void write(Object obj) throws IOException {
+        writeQueue.offer(obj);
+        key.interestOps(key.interestOps() | SelectionKey.OP_WRITE);
+        selector.wakeup();
+    }
 
     @Override
     public void close() throws IOException {
-        for (ByteBuffer buffer : buffers) {
-            bufferPool.recycle(buffer);
-        }
-        buffers.clear();
         Misc.close(channel);
+        bufferPool.recycle(readBuffer);
+        bufferPool.recycle(writeBuffer);
+        if (decodeCotext instanceof Closeable) {
+            Misc.close((Closeable) decodeCotext);
+        }
+        if (decodeCotext instanceof Closeable) {
+            Misc.close((Closeable) decodeCotext);
+        }
     }
 
     @Override
