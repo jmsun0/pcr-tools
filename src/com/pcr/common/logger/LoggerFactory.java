@@ -319,19 +319,23 @@ public class LoggerFactory {
         }
 
         private static void appendMessage(LogContext ctx) {
-            if (ctx.argsCount == 0)
-                ctx.sb.append(ctx.format);
+            if (ctx.format == null)
+                ctx.sb.appendNull();
             else {
-                int from = 0;
-                for (int i = 0; i < ctx.argsCount; i++) {
-                    int index = ctx.format.indexOf("{}", from);
-                    if (index == -1)
-                        break;
-                    ctx.sb.append(ctx.format, from, index - from);
-                    ctx.sb.append(ctx.args[i]);
-                    from = index + 2;
+                if (ctx.argsCount == 0)
+                    ctx.sb.append(ctx.format);
+                else {
+                    int from = 0;
+                    for (int i = 0; i < ctx.argsCount; i++) {
+                        int index = ctx.format.indexOf("{}", from);
+                        if (index == -1)
+                            break;
+                        ctx.sb.append(ctx.format, from, index - from);
+                        ctx.sb.append(ctx.args[i]);
+                        from = index + 2;
+                    }
+                    ctx.sb.append(ctx.format, from, ctx.format.length() - from);
                 }
-                ctx.sb.append(ctx.format, from, ctx.format.length() - from);
             }
         }
 

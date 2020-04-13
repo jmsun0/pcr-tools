@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
-import java.util.concurrent.ExecutorService;
 
 
 public class NIOClient extends NIOBase {
@@ -62,9 +61,9 @@ public class NIOClient extends NIOBase {
     private String host;
     private int port;
 
-    public NIOClient(String host, int port, ByteBufferPool bufferPool, ExecutorService executor,
-            ChannelHandler encoder, ChannelHandler decoder, EventHandler handler) {
-        super(bufferPool, executor, encoder, decoder, handler);
+    public NIOClient(String host, int port, ByteBufferPool bufferPool, ChannelHandler encoder,
+            ChannelHandler decoder, EventHandler handler) {
+        super(bufferPool, encoder, decoder, handler);
         this.host = host;
         this.port = port;
     }
@@ -90,5 +89,10 @@ public class NIOClient extends NIOBase {
             return sc;
         }
         return null;
+    }
+
+    @Override
+    protected boolean shutdownOnClose() {
+        return true;
     }
 }

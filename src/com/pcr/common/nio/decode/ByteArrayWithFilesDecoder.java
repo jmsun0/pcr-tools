@@ -1,116 +1,179 @@
 package com.pcr.common.nio.decode;
 
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.nio.channels.FileChannel;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+
+import com.pcr.common.core.Misc;
+import com.pcr.common.nio.core.ChannelContext;
+import com.pcr.common.nio.core.ChannelDecoder;
+import com.pcr.common.nio.core.NIOTools;
+
 /**
  * 
  * 报文类型： ByteArrayWithFiles
  * 
- * 报文结构： [header长度，包括自己(固定4字节)] [header(每个数据包结束位置偏移量，以4个字节为单位，变长)] [body][file1][file2]...
+ * 报文结构： [header长度，包括自己(4字节)] [data长度(4字节)] [每个files长度(8字节)] [data][file1][file2]...
  * 
  * @author root
  *
  */
-public class ByteArrayWithFilesDecoder /* extends ChannelDecoder */ {
+public class ByteArrayWithFilesDecoder extends ChannelDecoder {
 
-    // private int maxBuffers;// 读取文件时最大缓存的buffer个数
-    //
-    // public ByteArrayWithFilesDecoder(int maxBuffers) {
-    // this.maxBuffers = maxBuffers;
-    // }
-    //
-    // static final int STATE_READ_HEADER_SIZE = 0;
-    // static final int STATE_READ_HEADER = 1;
-    // static final int STATE_READ_BYTE_ARRAY = 2;
-    // static final int STATE_READ_FILES = 3;
-    //
-    // static class DecodeContext implements Closeable {
-    // public int startIndex;// 开始索引
-    // public int headerSize;// 数据头大小
-    // public int[] bodyOffsets;// 每个数据体结束位置对应开始索引的偏移量
-    // public int bodyIndex;// 当前正处理的数据体索引
-    // public ByteArrayWithFiles packet;// 正在处理的数据包
-    // public OutputStream out;// 正在写入的文件流
-    // public int clearSize;// 已清空的数据量
-    //
-    // @Override
-    // public void close() throws IOException {
-    // Misc.close(out);
-    // Misc.close(packet);
-    // }
-    // }
-    //
-    // @Override
-    // public int move(ChannelContext ctx, PacketProcesser processer) throws IOException {
-    // DecodeContext dc = (DecodeContext) ctx.decodeCotext;
-    // if (dc == null)
-    // ctx.decodeCotext = dc = new DecodeContext();
-    // switch (ctx.state) {
-    // case STATE_READ_HEADER_SIZE:
-    // if (ctx.readSize >= 4) {
-    // dc.headerSize = NIOTools.readInt(ctx.buffers, dc.startIndex);
-    // return STATE_READ_HEADER;
-    // }
-    // break;
-    // case STATE_READ_HEADER:
-    // if (ctx.readSize >= dc.headerSize) {
-    // if (dc.headerSize % 4 != 0)
-    // throw new IOException();
-    // int headerLen = dc.headerSize / 4 - 1;
-    // if (headerLen < 1)
-    // throw new IOException();
-    // dc.bodyOffsets = new int[headerLen];
-    // for (int i = 0; i < headerLen; i++) {
-    // dc.bodyOffsets[i] =
-    // NIOTools.readInt(ctx.buffers, dc.startIndex + 4 + i * 4);
-    // }
-    // dc.packet = new ByteArrayWithFiles();
-    // if (headerLen > 1) {
-    // dc.packet.files = new ArrayList<>();
-    // }
-    // return STATE_READ_BYTE_ARRAY;
-    // }
-    // break;
-    // case STATE_READ_BYTE_ARRAY:
-    // int bodyOffset = dc.bodyOffsets[dc.bodyIndex];
-    // if (ctx.readSize >= bodyOffset) {
-    // dc.packet.data = NIOTools.getBytes(ctx.buffers, dc.startIndex + dc.headerSize,
-    // bodyOffset);
-    // dc.bodyIndex++;
-    // return STATE_READ_FILES;
-    // }
-    // break;
-    // case STATE_READ_FILES:
-    // int realStartIndex = dc.startIndex - dc.clearSize;
-    // if (dc.bodyIndex == dc.bodyOffsets.length) {
-    // processer.process(ctx, dc.packet);
-    // int totalSize = dc.bodyOffsets[dc.bodyOffsets.length - 1];
-    // ctx.readSize -= totalSize;
-    // dc.startIndex = NIOTools.recycle(ctx.buffers, ctx.bufferPool,
-    // totalSize + realStartIndex);
-    // dc.bodyIndex = 0;
-    // dc.clearSize = 0;
-    // dc.packet = null;
-    // return STATE_READ_HEADER_SIZE;
-    // }
-    // bodyOffset = dc.bodyOffsets[dc.bodyIndex];
-    // if (ctx.readSize >= bodyOffset || ctx.buffers.size() > maxBuffers) {
-    // if (dc.out == null) {
-    // File file = Files.createTempFile(null, null).toFile();
-    // dc.packet.files.add(file);
-    // dc.out = new FileOutputStream(file);
-    // }
-    // int begin = Math.max(dc.bodyOffsets[dc.bodyIndex - 1] + realStartIndex, 0);
-    // int end = Math.min(bodyOffset, ctx.readSize) + realStartIndex;
-    // NIOTools.write(ctx.buffers, begin, end, dc.out);
-    // dc.clearSize += end - NIOTools.recycle(ctx.buffers, ctx.bufferPool, end);
-    // if (ctx.readSize >= bodyOffset) {
-    // Misc.close(dc.out);
-    // dc.out = null;
-    // dc.bodyIndex++;
-    // }
-    // return STATE_READ_FILES;
-    // }
-    // break;
-    // }
-    // return -1;
-    // }
+    static final int STATE_HEADER_SIZE = 0;
+    static final int STATE_DATA_OFFSET = 1;
+    static final int STATE_FILES_OFFSETS = 2;
+    static final int STATE_DATA = 3;
+    static final int STATE_FILES = 4;
+
+    static class DecodeContext implements Closeable {
+        public int state;
+        public byte[] buffer = new byte[8];
+        public int bufferIndex;
+        public int dataSize;
+        public long[] filesSizes;
+        public long fileSize;
+        public int filesIndex;
+        public long position;
+        public ByteArrayWithFiles packet;
+        public FileChannel fc;
+
+        @Override
+        public void close() throws IOException {
+            Misc.close(fc);
+            Misc.close(packet);
+        }
+    }
+
+    @Override
+    protected void decode(ChannelContext ctx) throws IOException {
+        DecodeContext dc = getDecodeContext(ctx);
+        switch (dc.state) {
+            case STATE_HEADER_SIZE: {
+                readBuffer(ctx, dc, 4);
+                if (dc.bufferIndex == 4) {
+                    dc.bufferIndex = 0;
+                    int headerSize = NIOTools.getInt(dc.buffer);
+                    if (headerSize % 8 != 0)
+                        throw new IOException();
+                    dc.filesSizes = new long[headerSize / 8 - 1];
+                    dc.state = STATE_DATA_OFFSET;
+                }
+                break;
+            }
+            case STATE_DATA_OFFSET: {
+                readBuffer(ctx, dc, 4);
+                if (dc.bufferIndex == 4) {
+                    dc.bufferIndex = 0;
+                    dc.dataSize = NIOTools.getInt(dc.buffer);
+                    dc.filesIndex = 0;
+                    dc.state = STATE_FILES_OFFSETS;
+                }
+                break;
+            }
+            case STATE_FILES_OFFSETS: {
+                if (dc.filesIndex == dc.filesSizes.length) {
+                    dc.packet = new ByteArrayWithFiles(new byte[dc.dataSize], new ArrayList<>());
+                    dc.position = 0;
+                    dc.state = STATE_DATA;
+                    break;
+                }
+                readBuffer(ctx, dc, 8);
+                if (dc.bufferIndex == 8) {
+                    dc.bufferIndex = 0;
+                    dc.filesSizes[dc.filesIndex++] = NIOTools.getLong(dc.buffer);
+                }
+                break;
+            }
+            case STATE_DATA: {
+                int n = Math.min(ctx.readBuffer.remaining(), dc.dataSize - (int) dc.position);
+                ctx.readBuffer.get(dc.packet.data, (int) dc.position, n);
+                dc.position += n;
+                if (dc.position == dc.dataSize) {
+                    dc.position = 0;
+                    dc.filesIndex = 0;
+                    dc.state = STATE_FILES;
+                }
+                break;
+            }
+            case STATE_FILES: {
+                if (dc.filesIndex == dc.filesSizes.length) {
+                    finish(ctx, dc);
+                    break;
+                }
+                openFile(dc);
+                int oldLimit = ctx.readBuffer.limit();
+                int n = (int) Math.min(ctx.readBuffer.remaining(), dc.fileSize);
+                ctx.readBuffer.limit(ctx.readBuffer.position() + n);
+                if (dc.fc.write(ctx.readBuffer) != n)
+                    throw new IOException();
+                ctx.readBuffer.limit(oldLimit);
+                finishCurrent(dc, n);
+                break;
+            }
+        }
+    }
+
+    @Override
+    protected int beforeRead(ChannelContext ctx) throws IOException {
+        DecodeContext dc = getDecodeContext(ctx);
+        if (dc.state == STATE_FILES) {
+            while (true) {
+                if (dc.filesIndex == dc.filesSizes.length) {
+                    finish(ctx, dc);
+                    break;
+                }
+                openFile(dc);
+                long n = dc.fc.transferFrom(ctx.channel, dc.position, dc.fileSize - dc.position);
+                if (n <= 0) {
+                    return (int) n;
+                }
+                finishCurrent(dc, n);
+            }
+        }
+        return 1;
+    }
+
+    private DecodeContext getDecodeContext(ChannelContext ctx) {
+        DecodeContext dc = (DecodeContext) ctx.decodeCotext;
+        if (dc == null)
+            ctx.decodeCotext = dc = new DecodeContext();
+        return dc;
+    }
+
+    private void readBuffer(ChannelContext ctx, DecodeContext dc, int count) {
+        int n = Math.min(ctx.readBuffer.remaining(), count - dc.bufferIndex);
+        ctx.readBuffer.get(dc.buffer, dc.bufferIndex, n);
+        dc.bufferIndex += n;
+    }
+
+    private void finish(ChannelContext ctx, DecodeContext dc) throws IOException {
+        ctx.processer.process(ctx, dc.packet);
+        dc.packet = null;
+        dc.bufferIndex = 0;
+        dc.state = STATE_HEADER_SIZE;
+    }
+
+    private void openFile(DecodeContext dc) throws IOException {
+        if (dc.fc == null) {
+            File file = Files.createTempFile(null, null).toFile();
+            dc.packet.files.add(file);
+            dc.fc = FileChannel.open(file.toPath(), StandardOpenOption.WRITE);
+            dc.fileSize = dc.filesSizes[dc.filesIndex];
+        }
+    }
+
+    private void finishCurrent(DecodeContext dc, long n) throws IOException {
+        dc.position += n;
+        if (dc.position == dc.fileSize) {
+            dc.fc.close();
+            dc.fc = null;
+            dc.position = 0;
+            dc.filesIndex++;
+        }
+    }
 }

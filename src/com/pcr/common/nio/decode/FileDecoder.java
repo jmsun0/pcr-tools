@@ -1,78 +1,48 @@
 package com.pcr.common.nio.decode;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 
+import com.pcr.common.core.Misc;
 import com.pcr.common.nio.core.ChannelContext;
-import com.pcr.common.nio.core.ChannelHandler;
+import com.pcr.common.nio.core.ChannelDecoder;
 import com.pcr.common.nio.core.NIOTools;
 
 /**
- * 报文类型： byte[]
+ * 报文类型： File（实现零拷贝）
  * 
- * 报文结构： [总长度，包括自己(固定4字节)] [body]
+ * 报文结构： [总长度，包括自己(固定8字节)] [body]
  * 
  * @author root
  *
  */
-public class FileDecoder implements ChannelHandler {
+public class FileDecoder extends ChannelDecoder {
 
     static final int STATE_HEADER = 0;
     static final int STATE_BODY = 1;
 
-    static class DecodeContext {
+    static class DecodeContext implements Closeable {
         public int state;
-        public byte[] header = new byte[4];
+        public byte[] header = new byte[8];
         public int headerIndex;
-        public int total;
-        public int position;
+        public long total;
+        public long position;
         public File file;
         public FileChannel fc;
-    }
 
-    @Override
-    public int handle(ChannelContext ctx) throws IOException {
-        DecodeContext dc = getDecodeContext(ctx);
-        while (true) {
-            if (dc.state == STATE_BODY) {
-                while (true) {
-                    int n = (int) dc.fc.transferFrom(ctx.channel, dc.position,
-                            dc.total - dc.position);
-                    if (n == 0 || n == -1) {
-                        return n;
-                    }
-                    dc.position += n;
-                    if (dc.position == dc.total) {
-                        dc.fc.close();
-                        ctx.processer.process(ctx, dc.file);
-                        dc.headerIndex = 0;
-                        dc.position = 0;
-                        dc.fc = null;
-                        dc.file = null;
-                        dc.state = STATE_HEADER;
-                        break;
-                    }
-                }
-            }
-            int n = ctx.channel.read(ctx.readBuffer);
-            if (n == 0 || n == -1) {
-                return n;
-            }
-            ctx.readBuffer.flip();
-            while (true) {
-                decode(ctx);
-                if (!ctx.readBuffer.hasRemaining()) {
-                    break;
-                }
-            }
-            ctx.readBuffer.clear();
+        @Override
+        public void close() throws IOException {
+            Misc.close(fc);
+            file.delete();
         }
     }
 
-    public void decode(ChannelContext ctx) throws IOException {
+    @Override
+    protected void decode(ChannelContext ctx) throws IOException {
         DecodeContext dc = getDecodeContext(ctx);
         switch (dc.state) {
             case STATE_HEADER: {
@@ -80,7 +50,7 @@ public class FileDecoder implements ChannelHandler {
                 ctx.readBuffer.get(dc.header, dc.headerIndex, len);
                 dc.headerIndex += len;
                 if (dc.headerIndex == dc.header.length) {
-                    dc.total = NIOTools.getInt(dc.header);
+                    dc.total = NIOTools.getLong(dc.header);
                     dc.file = Files.createTempFile(null, null).toFile();
                     dc.fc = FileChannel.open(dc.file.toPath(), StandardOpenOption.WRITE);
                     dc.state = STATE_BODY;
@@ -89,7 +59,7 @@ public class FileDecoder implements ChannelHandler {
             }
             case STATE_BODY: {
                 int oldLimit = ctx.readBuffer.limit();
-                int len = Math.min(ctx.readBuffer.remaining(), dc.total);
+                int len = (int) Math.min(ctx.readBuffer.remaining(), dc.total);
                 ctx.readBuffer.limit(ctx.readBuffer.position() + len);
                 int n = dc.fc.write(ctx.readBuffer);
                 if (n != len)
@@ -97,17 +67,40 @@ public class FileDecoder implements ChannelHandler {
                 dc.position += len;
                 ctx.readBuffer.limit(oldLimit);
                 if (dc.position == dc.total) {
-                    dc.fc.close();
-                    ctx.processer.process(ctx, dc.file);
-                    dc.headerIndex = 0;
-                    dc.position = 0;
-                    dc.fc = null;
-                    dc.file = null;
-                    dc.state = STATE_HEADER;
+                    finish(ctx, dc);
                 }
                 break;
             }
         }
+    }
+
+    @Override
+    protected int beforeRead(ChannelContext ctx) throws IOException {
+        DecodeContext dc = getDecodeContext(ctx);
+        if (dc.state == STATE_BODY) {
+            while (true) {
+                long n = dc.fc.transferFrom(ctx.channel, dc.position, dc.total - dc.position);
+                if (n <= 0) {
+                    return (int) n;
+                }
+                dc.position += n;
+                if (dc.position == dc.total) {
+                    finish(ctx, dc);
+                    break;
+                }
+            }
+        }
+        return 1;
+    }
+
+    private void finish(ChannelContext ctx, DecodeContext dc) throws IOException {
+        dc.fc.close();
+        ctx.processer.process(ctx, dc.file);
+        dc.headerIndex = 0;
+        dc.position = 0;
+        dc.fc = null;
+        dc.file = null;
+        dc.state = STATE_HEADER;
     }
 
     private DecodeContext getDecodeContext(ChannelContext ctx) {

@@ -5,11 +5,14 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
-import com.pcr.common.core.Lists;
-
 public class ByteArrayWithFiles implements Closeable {
     public byte[] data;
-    public List<File> files = Lists.emptyList();
+    public List<File> files;
+
+    public ByteArrayWithFiles(byte[] data, List<File> files) {
+        this.data = data;
+        this.files = files;
+    }
 
     @Override
     public void close() throws IOException {

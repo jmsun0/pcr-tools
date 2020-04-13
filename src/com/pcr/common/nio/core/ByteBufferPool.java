@@ -16,7 +16,7 @@ public class ByteBufferPool {
     public ByteBuffer apply() {
         ByteBuffer buffer = buffers.poll();
         if (buffer == null)
-            buffer = ByteBuffer.allocate(bufferSize);
+            buffer = ByteBuffer.allocateDirect(bufferSize);
         return buffer;
     }
 

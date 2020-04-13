@@ -7,7 +7,6 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
 
 import com.pcr.common.core.Misc;
 import com.pcr.common.logger.Logger;
@@ -18,16 +17,14 @@ public abstract class NIOBase extends Thread implements PacketProcesser {
 
     protected Closeable channel;
     protected ByteBufferPool bufferPool;
-    protected ExecutorService executor;
     protected ChannelHandler encoder, decoder;
     protected EventHandler handler;
     protected boolean isOpen = true;
     protected Selector selector;
 
-    public NIOBase(ByteBufferPool bufferPool, ExecutorService executor, ChannelHandler encoder,
-            ChannelHandler decoder, EventHandler handler) {
+    public NIOBase(ByteBufferPool bufferPool, ChannelHandler encoder, ChannelHandler decoder,
+            EventHandler handler) {
         this.bufferPool = bufferPool;
-        this.executor = executor;
         this.encoder = encoder;
         this.decoder = decoder;
         this.handler = handler;
@@ -36,6 +33,8 @@ public abstract class NIOBase extends Thread implements PacketProcesser {
     protected abstract Closeable openChannel() throws IOException;
 
     protected abstract SocketChannel processConnect(SelectionKey key) throws IOException;
+
+    protected abstract boolean shutdownOnClose();
 
     @Override
     public void run() {
@@ -60,8 +59,11 @@ public abstract class NIOBase extends Thread implements PacketProcesser {
                                     this);
                             k.attach(ctx);
                             handler.onConnect(ctx);
+                            if (!ctx.channel.isOpen()) {
+                                n = -1;
+                            }
                         }
-                        if (key.isReadable() || key.isWritable()) {
+                        if (n != -1 && (key.isReadable() || key.isWritable())) {
                             ctx = (ChannelContext) key.attachment();
                             if (key.isWritable())
                                 n = ctx.encoder.handle(ctx);
@@ -70,10 +72,17 @@ public abstract class NIOBase extends Thread implements PacketProcesser {
                         }
                     } catch (Exception e) {
                         logger.error(e.getMessage(), e);
+                        n = -1;
                     }
                     if (n == -1) {
-                        handler.onClose(ctx);
+                        try {
+                            handler.onClose(ctx);
+                        } catch (Exception e) {
+                            logger.error(e.getMessage(), e);
+                        }
                         Misc.close(ctx);
+                        if (shutdownOnClose())
+                            shutdown();
                     }
                 }
             }
@@ -85,19 +94,16 @@ public abstract class NIOBase extends Thread implements PacketProcesser {
 
     @Override
     public void process(ChannelContext ctx, Object packet) {
-        executor.execute(() -> {
-            try {
-                handler.onRead(ctx, packet);
-            } catch (Exception e) {
-                logger.error(e.getMessage(), e);
-            }
-        });
+        try {
+            handler.onRead(ctx, packet);
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+        }
     }
 
     public void shutdown() {
         isOpen = false;
         Misc.close(selector);
         Misc.close(channel);
-        executor.shutdown();
     }
 }

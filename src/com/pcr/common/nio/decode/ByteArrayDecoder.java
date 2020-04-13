@@ -28,7 +28,7 @@ public class ByteArrayDecoder extends ChannelDecoder {
     }
 
     @Override
-    public void decode(ChannelContext ctx) throws IOException {
+    protected void decode(ChannelContext ctx) throws IOException {
         DecodeContext dc = (DecodeContext) ctx.decodeCotext;
         if (dc == null)
             ctx.decodeCotext = dc = new DecodeContext();

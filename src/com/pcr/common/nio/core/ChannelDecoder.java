@@ -4,13 +4,17 @@ import java.io.IOException;
 
 public abstract class ChannelDecoder implements ChannelHandler {
 
-    public abstract void decode(ChannelContext ctx) throws IOException;
+    protected abstract void decode(ChannelContext ctx) throws IOException;
 
     @Override
     public int handle(ChannelContext ctx) throws IOException {
         while (true) {
-            int n = ctx.channel.read(ctx.readBuffer);
-            if (n == 0 || n == -1) {
+            int n = beforeRead(ctx);
+            if (n <= 0) {
+                return n;
+            }
+            n = ctx.channel.read(ctx.readBuffer);
+            if (n <= 0) {
                 return n;
             }
             ctx.readBuffer.flip();
@@ -22,5 +26,9 @@ public abstract class ChannelDecoder implements ChannelHandler {
             }
             ctx.readBuffer.clear();
         }
+    }
+
+    protected int beforeRead(ChannelContext ctx) throws IOException {
+        return 1;
     }
 }

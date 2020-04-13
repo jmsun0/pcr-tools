@@ -15,4 +15,18 @@ public class NIOTools {
             bytes[i] = (byte) ((val >>> (8 * (3 - i))) & 0xff);
         }
     }
+
+    public static long getLong(byte[] bytes) {
+        long val = 0;
+        for (int i = 0; i < 8; i++) {
+            val += (bytes[i] & 0xffl) << (8 * (7 - i));
+        }
+        return val;
+    }
+
+    public static void putLong(byte[] bytes, long val) {
+        for (int i = 0; i < 8; i++) {
+            bytes[i] = (byte) ((val >>> (8 * (7 - i))) & 0xff);
+        }
+    }
 }

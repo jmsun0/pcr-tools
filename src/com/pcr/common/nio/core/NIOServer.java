@@ -6,7 +6,6 @@ import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.concurrent.ExecutorService;
 
 public class NIOServer extends NIOBase {
     // static final Logger logger = LoggerFactory.getLogger(NIOServer.class);
@@ -46,9 +45,9 @@ public class NIOServer extends NIOBase {
 
     protected int port;
 
-    public NIOServer(int port, ByteBufferPool bufferPool, ExecutorService executor,
-            ChannelHandler encoder, ChannelHandler decoder, EventHandler handler) {
-        super(bufferPool, executor, encoder, decoder, handler);
+    public NIOServer(int port, ByteBufferPool bufferPool, ChannelHandler encoder,
+            ChannelHandler decoder, EventHandler handler) {
+        super(bufferPool, encoder, decoder, handler);
         this.port = port;
     }
 
@@ -70,5 +69,10 @@ public class NIOServer extends NIOBase {
             return sc;
         }
         return null;
+    }
+
+    @Override
+    protected boolean shutdownOnClose() {
+        return false;
     }
 }

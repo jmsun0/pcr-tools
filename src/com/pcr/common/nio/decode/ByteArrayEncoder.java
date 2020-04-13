@@ -6,6 +6,15 @@ import com.pcr.common.nio.core.ChannelContext;
 import com.pcr.common.nio.core.ChannelEncoder;
 import com.pcr.common.nio.core.NIOTools;
 
+
+/**
+ * 报文类型： byte[]
+ * 
+ * 报文结构： [总长度，包括自己(固定4字节)] [body]
+ * 
+ * @author root
+ *
+ */
 public class ByteArrayEncoder extends ChannelEncoder {
 
     static final int STATE_HEADER = 0;
@@ -20,7 +29,7 @@ public class ByteArrayEncoder extends ChannelEncoder {
     }
 
     @Override
-    public void encode(ChannelContext ctx) throws IOException {
+    protected void encode(ChannelContext ctx) throws IOException {
         EncodeContext ec = (EncodeContext) ctx.encodeCotext;
         if (ec == null)
             ctx.encodeCotext = ec = new EncodeContext();
