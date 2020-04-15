@@ -1,4 +1,4 @@
-package com.sjm.common.nio.decode;
+package com.sjm.common.nio.simple;
 
 import java.io.IOException;
 

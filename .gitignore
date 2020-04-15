@@ -4,7 +4,7 @@
 /logs/
 /pcr-android/
 /pcr-pc/
-/resources/tessdata/
+**/tessdata/
 /tmp/
 *.jar
 *.tar.gz

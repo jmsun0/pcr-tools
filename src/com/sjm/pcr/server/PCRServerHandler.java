@@ -11,9 +11,9 @@ import com.sjm.common.nio.core.ChannelContext;
 import com.sjm.common.nio.core.EventHandler;
 import com.sjm.common.nio.core.NIOBase;
 import com.sjm.common.nio.core.NIOServer;
-import com.sjm.common.nio.decode.ByteArrayWithFiles;
-import com.sjm.common.nio.decode.ByteArrayWithFilesDecoder;
-import com.sjm.common.nio.decode.ByteArrayWithFilesEncoder;
+import com.sjm.common.nio.simple.ByteArrayWithFiles;
+import com.sjm.common.nio.simple.ByteArrayWithFilesDecoder;
+import com.sjm.common.nio.simple.ByteArrayWithFilesEncoder;
 
 public class PCRServerHandler extends EventHandler {
     public static void main(String[] args) {

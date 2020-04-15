@@ -38,7 +38,11 @@ import com.sjm.common.core.Strings;
 
 public class LoggerFactory {
     static {
-        loadLoggerProperties();
+        try {
+            loadLoggerProperties();
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+        }
     }
 
     private static void loadLoggerProperties() {
