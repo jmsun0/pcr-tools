@@ -1,30 +1,30 @@
 package com.sjm.pcr.client;
 
-import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 
-import com.sjm.common.core.Strings;
-import com.sjm.common.logger.Logger;
-import com.sjm.common.logger.LoggerFactory;
-import com.sjm.common.nio.core.ByteBufferPool;
-import com.sjm.common.nio.core.ChannelContext;
-import com.sjm.common.nio.core.EventHandler;
-import com.sjm.common.nio.core.NIOBase;
-import com.sjm.common.nio.core.NIOClient;
-import com.sjm.common.nio.simple.ByteArrayWithFiles;
-import com.sjm.common.nio.simple.ByteArrayWithFilesDecoder;
-import com.sjm.common.nio.simple.ByteArrayWithFilesEncoder;
+import com.sjm.core.logger.Logger;
+import com.sjm.core.logger.LoggerFactory;
+import com.sjm.core.mini.springboot.api.Component;
+import com.sjm.core.mini.springboot.api.PostConstruct;
+import com.sjm.core.nio.core.ByteBufferPool;
+import com.sjm.core.nio.core.ChannelContext;
+import com.sjm.core.nio.core.EventHandler;
+import com.sjm.core.nio.core.NIOBase;
+import com.sjm.core.nio.core.NIOClient;
+import com.sjm.core.nio.impl.ByteArrayWithFiles;
+import com.sjm.core.nio.impl.ByteArrayWithFilesDecoder;
+import com.sjm.core.nio.impl.ByteArrayWithFilesEncoder;
 
+@Component
 public class PCRClientHandler extends EventHandler {
-    public static void main(String[] args) {
+    static final Logger logger = LoggerFactory.getLogger(PCRClientHandler.class);
+
+    @PostConstruct
+    private void init() {
         NIOClient client = new NIOClient("127.0.0.1", 9009, new ByteBufferPool(4096),
-                new ByteArrayWithFilesEncoder(), new ByteArrayWithFilesDecoder(),
-                new PCRClientHandler());
+                new ByteArrayWithFilesEncoder(), new ByteArrayWithFilesDecoder(), this);
         client.start();
     }
-
-    static final Logger logger = LoggerFactory.getLogger(PCRClientHandler.class);
 
     @Override
     public void onStartup(NIOBase obj) {
@@ -33,22 +33,14 @@ public class PCRClientHandler extends EventHandler {
 
     @Override
     public void onRead(ChannelContext ctx, Object packet) throws IOException {
-        byte[] data = (byte[]) packet;
-        logger.info("channel {} read {} bytes", ctx, data.length);
-        Strings.print(data);
+        ByteArrayWithFiles data = (ByteArrayWithFiles) packet;
+        logger.info("data.files={}", data.files);
+        logger.info("data.data.length={}", data.data.length);
     }
 
     @Override
     public void onConnect(ChannelContext ctx) throws IOException {
         logger.info("channel {} has been connected", ctx);
-        ctx.write(new ByteArrayWithFiles("hello world".getBytes(), Arrays
-                .asList(new File("/data/centos6/CentOS6.vhd-v1.tar.gz"), new File("/root/a.txt"))));
-        // ctx.write(new File("/data/centos6/CentOS6.vhd"));
-        // ctx.write(new File("/data/centos6/CentOS6.vhd-v1.tar.gz"));
-        // ctx.write("hello".getBytes());
-        // ctx.write("world".getBytes());
-        // Misc.sleep(3000);
-        // ctx.close();
     }
 
     @Override
