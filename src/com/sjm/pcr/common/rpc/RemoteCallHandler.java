@@ -1,18 +1,22 @@
 package com.sjm.pcr.common.rpc;
 
+import com.sjm.core.logger.Logger;
+import com.sjm.core.logger.LoggerFactory;
 import com.sjm.core.mini.springboot.api.ApplicationContext;
 import com.sjm.core.mini.springboot.api.Autowired;
 import com.sjm.core.mini.springboot.api.Component;
 import com.sjm.core.util.Converters;
+import com.sjm.core.util.Lists;
 import com.sjm.core.util.Reflection;
 
 @Component
 public class RemoteCallHandler {
+    static final Logger logger = LoggerFactory.getLogger(RemoteCallHandler.class);
 
     @Autowired
     private ApplicationContext applicationContext;
 
-    public RemoteCallResult hanleRemoteCall(String className, String beanName, String method,
+    public RemoteCallResponse hanleRemoteCall(String className, String beanName, String method,
             Class<?>[] types, Object... args) {
         try {
             Object obj;
@@ -24,6 +28,8 @@ public class RemoteCallHandler {
                 clazz = Reflection.forName(className);
                 obj = applicationContext.getBean(clazz.getClazz());
             }
+            if (args == null)
+                args = Lists.emptyObjectArray;
             // 取得缓存的method对象
             Reflection.IMethod met = clazz.getSupersMethodMap().get(method);
             Object returnValue;
@@ -40,13 +46,14 @@ public class RemoteCallHandler {
             } else {
                 returnValue = Reflection.Util.invokeDynamic(obj, method, args);
             }
-            return new RemoteCallResult(returnValue, null);
+            return new RemoteCallResponse(returnValue, null);
         } catch (Throwable e) {
-            return new RemoteCallResult(null, e.getCause() != null ? e.getCause() : e);
+            logger.error("handle remote call fail,msg={}", e.getMessage());
+            return new RemoteCallResponse(null, e.getCause() != null ? e.getCause() : e);
         }
     }
 
-    public RemoteCallResult hanleRemoteCall(RemoteCallRequest request) {
+    public RemoteCallResponse hanleRemoteCall(RemoteCallRequest request) {
         return hanleRemoteCall(request.getClassName(), request.getBeanName(), request.getMethod(),
                 request.getTypes(), request.getArgs());
     }

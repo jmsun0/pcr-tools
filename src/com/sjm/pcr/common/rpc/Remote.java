@@ -12,7 +12,9 @@ public @interface Remote {
 
     public String className() default "";
 
+    public Class<?> clazz() default Object.class;
+
     public String beanName() default "";
 
-    public Class<? extends RemoteCall> remote();
+    public Class<? extends RemoteCall> remote() default RemoteCall.class;
 }

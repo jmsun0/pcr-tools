@@ -91,7 +91,7 @@ public class LoggerFactory {
             level = Util.getLevel(levelStr);
         if (Misc.isEmpty(pattern))
             pattern = Util.getDefaultPattern();
-        return new Logger(clazz, level, LogFormatParser.parse(pattern), appenderArr);
+        return new Logger(clazz, level, LogFormatParser.parseOrGetCached(pattern), appenderArr);
     }
 
     private static ThreadLocal<LogContext> logContextThreadLocal = new ThreadLocal<>();
@@ -478,6 +478,15 @@ public class LoggerFactory {
             } finally {
                 currentLogFormat.remove();
             }
+        }
+
+        private static Map<String, LogFormat> cacheMap = new HashMap<>();
+
+        public static LogFormat parseOrGetCached(String str) {
+            LogFormat fmt = cacheMap.get(str);
+            if (fmt == null)
+                cacheMap.put(str, fmt = parse(str));
+            return fmt;
         }
 
         @Override

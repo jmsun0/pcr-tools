@@ -64,6 +64,8 @@ public class Reflection {
         public int getModifier();
 
         public Annotations getAnnotations();
+
+        public IClass getDeclaringIClass();
     }
 
     public interface IType {
@@ -410,18 +412,10 @@ public class Reflection {
             }
         }
 
-        public static Class<?> getClass(String className, ClassLoader loader) {
-            try {
-                return Class.forName(className, true, loader);
-            } catch (Exception e) {
-                e.printStackTrace();
-                throw new RuntimeException(className);
-            }
-        }
-
         public static Class<?> getClass(String className) {
             try {
-                return Class.forName(className);
+                return Class.forName(className, false,
+                        Thread.currentThread().getContextClassLoader());
             } catch (Exception e) {
                 e.printStackTrace();
                 throw new RuntimeException(className);
@@ -856,6 +850,61 @@ public class Reflection {
             }
             return null;
         }
+
+        @SuppressWarnings("unchecked")
+        public static IType replaceVariable(IType type, List<IType> src, Object dst) {
+            // dst ：List<IType> or IType
+            switch (type.getFlag()) {
+                case Array:
+                    IType result = replaceVariable(type.getComponent(), src, dst);
+                    if (result != type)
+                        return ITypes.forArray(result);
+                    break;
+                case Param:
+                    List<IType> newParams = replaceParamsVariable(type.getParams(), src, dst);
+                    if (newParams != null)
+                        return ITypes.forParam(type.getClazz(), newParams);
+                    break;
+                case Variable:
+                    for (int i = 0; i < src.size(); i++) {
+                        if (type.getName().equals(src.get(i).getName())) {
+                            if (dst instanceof IType)
+                                return (IType) dst;
+                            else
+                                return ((List<IType>) dst).get(i);
+                        }
+                    }
+                    newParams = replaceParamsVariable(type.getParams(), src, dst);
+                    if (newParams != null)
+                        return ITypes.forVariable(type.getName(), type.getBound(), newParams);
+                    break;
+                case Question:
+                    newParams = replaceParamsVariable(type.getParams(), src, dst);
+                    if (newParams != null)
+                        return ITypes.forQuestion(type.getBound(), newParams);
+                    break;
+                default:
+                    break;
+            }
+            return type;
+        }
+
+        public static List<IType> replaceParamsVariable(List<IType> params, List<IType> src,
+                Object dst) {
+            if (params == null)
+                return null;
+            List<IType> newParams = null;
+            for (int i = 0, len = params.size(); i < len; i++) {
+                IType st = params.get(i);
+                IType dt = replaceVariable(st, src, dst);
+                if (st != dt) {
+                    if (newParams == null)
+                        newParams = new ArrayList<>(params);
+                    newParams.set(i, dt);
+                }
+            }
+            return newParams;
+        }
     }
 
     static class ITypeImpl implements MyStringBuilder.AppendTo, IType {
@@ -1097,6 +1146,17 @@ public class Reflection {
                         Lists.from(getAnnotationsDirectly()), Annotation::annotationType));
             return annotations;
         }
+
+        private IClass declaringIClass;
+
+        @Override
+        public IClass getDeclaringIClass() {
+            return declaringIClass;
+        }
+
+        public AbstractBase(IClass declaringIClass) {
+            this.declaringIClass = declaringIClass;
+        }
     }
     static class IClassImpl extends AbstractBase implements IClass {
         private static Map<Class<?>, IClassImpl> classCacheMap =
@@ -1120,6 +1180,7 @@ public class Reflection {
         }
 
         private IClassImpl(Class<?> clazz) {
+            super(null);
             this.clazz = clazz;
         }
 
@@ -1338,60 +1399,6 @@ public class Reflection {
                 addExtendsPath(t, path);
         }
 
-        @SuppressWarnings("unchecked")
-        static IType replaceVariable(IType type, List<IType> src, Object dst) {
-            // dst ：List<IType> or IType
-            switch (type.getFlag()) {
-                case Array:
-                    IType result = replaceVariable(type.getComponent(), src, dst);
-                    if (result != type)
-                        return ITypes.forArray(result);
-                    break;
-                case Param:
-                    List<IType> newParams = replaceParamsVariable(type.getParams(), src, dst);
-                    if (newParams != null)
-                        return ITypes.forParam(type.getClazz(), newParams);
-                    break;
-                case Variable:
-                    for (int i = 0; i < src.size(); i++) {
-                        if (type.getName().equals(src.get(i).getName())) {
-                            if (dst instanceof IType)
-                                return (IType) dst;
-                            else
-                                return ((List<IType>) dst).get(i);
-                        }
-                    }
-                    newParams = replaceParamsVariable(type.getParams(), src, dst);
-                    if (newParams != null)
-                        return ITypes.forVariable(type.getName(), type.getBound(), newParams);
-                    break;
-                case Question:
-                    newParams = replaceParamsVariable(type.getParams(), src, dst);
-                    if (newParams != null)
-                        return ITypes.forQuestion(type.getBound(), newParams);
-                    break;
-                default:
-                    break;
-            }
-            return type;
-        }
-
-        static List<IType> replaceParamsVariable(List<IType> params, List<IType> src, Object dst) {
-            if (params == null)
-                return null;
-            List<IType> newParams = null;
-            for (int i = 0, len = params.size(); i < len; i++) {
-                IType st = params.get(i);
-                IType dt = replaceVariable(st, src, dst);
-                if (st != dt) {
-                    if (newParams == null)
-                        newParams = new ArrayList<>(params);
-                    newParams.set(i, dt);
-                }
-            }
-            return newParams;
-        }
-
         public List<IType> getITypeParamMapperWithoutCache(Class<?> clazz) {
             List<IType> path = getExtendsPathMap().get(clazz);
             if (path == null)
@@ -1417,13 +1424,14 @@ public class Reflection {
                 switch (type.getFlag()) {
                     case Param:
                         for (int j = 0; j < result.size(); j++) {
-                            result.set(j, replaceVariable(result.get(j), p1, p2));
+                            result.set(j, Util.replaceVariable(result.get(j), p1, p2));
                         }
                         break;
                     default:
                         if (!p1.isEmpty()) {
                             for (int j = 0; j < result.size(); j++) {
-                                result.set(j, replaceVariable(result.get(j), p1, ITypes.CObject));
+                                result.set(j,
+                                        Util.replaceVariable(result.get(j), p1, ITypes.CObject));
                             }
                         }
                         break L0;
@@ -1447,7 +1455,7 @@ public class Reflection {
         @Override
         public List<IType> getITypeParamMapper(Class<?> clazz, List<IType> types) {
             List<IType> mapper = getITypeParamMapper(clazz);
-            List<IType> result = replaceParamsVariable(mapper, getTypeParameters(), types);
+            List<IType> result = Util.replaceParamsVariable(mapper, getTypeParameters(), types);
             return result == null ? mapper : result;
         }
 
@@ -1614,6 +1622,7 @@ public class Reflection {
         private Field field;
 
         public IFieldImpl(Field field) {
+            super(IClassImpl.valueOf(field.getDeclaringClass()));
             this.field = field;
         }
 
@@ -1662,6 +1671,9 @@ public class Reflection {
         }
     }
     static abstract class AbstractIMethod extends AbstractBase implements IMethod {
+        public AbstractIMethod(IClass declaringIClass) {
+            super(declaringIClass);
+        }
 
         public abstract Object invoke(Object obj, Object... args);
 
@@ -1700,6 +1712,7 @@ public class Reflection {
         private Method method;
 
         public ReflectMethod(Method method) {
+            super(IClassImpl.valueOf(method.getDeclaringClass()));
             this.method = method;
         }
 
@@ -1762,6 +1775,7 @@ public class Reflection {
         private Constructor<?> constructor;
 
         public ConstructorMethod(Constructor<?> constructor) {
+            super(IClassImpl.valueOf(constructor.getDeclaringClass()));
             this.constructor = constructor;
         }
 
@@ -1823,6 +1837,7 @@ public class Reflection {
         private List<IMethod> methods;
 
         public MultiMethod(List<IMethod> methods) {
+            super(null);
             this.methods = methods;
             Lists.insertSort(methods, null, CmpMethodByParam, -1, -1);
         }
@@ -1987,6 +2002,11 @@ public class Reflection {
         @Override
         public Annotations getAnnotations() {
             return base.getAnnotations();
+        }
+
+        @Override
+        public IClass getDeclaringIClass() {
+            return base.getDeclaringIClass();
         }
     }
     static class IFieldGetterAndSetter extends FilterBase implements Getter, Setter {

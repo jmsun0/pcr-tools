@@ -1,12 +1,12 @@
 package com.sjm.pcr.common.rpc;
 
-public class RemoteCallResult {
+public class RemoteCallResponse {
     private Object returnValue;// 返回值
     private Throwable error;// 抛出的异常，为空表示正常返回
 
-    public RemoteCallResult() {}
+    public RemoteCallResponse() {}
 
-    public RemoteCallResult(Object returnValue, Throwable error) {
+    public RemoteCallResponse(Object returnValue, Throwable error) {
         this.returnValue = returnValue;
         this.error = error;
     }

@@ -32,6 +32,7 @@ import com.sjm.core.util.Misc;
 import com.sjm.core.util.MyStringBuilder;
 import com.sjm.core.util.Numbers;
 import com.sjm.core.util.Reflection;
+import com.sjm.core.util.Reflection.IType;
 import com.sjm.core.util.Source;
 import com.sjm.core.util.Strings;
 
@@ -111,7 +112,9 @@ public abstract class JSONReader<T> {
         }
     };
 
-    public static final JSONReader<Object> ForObject(final Reflection.IClass clazz) {
+    public static final JSONReader<Object> ForObject(final Reflection.IType type) {
+        // System.out.println(type);
+        Reflection.IClass clazz = type.getIClass();
         return new JSONReader<Object>() {
             @Override
             public Object read(JSONType word, Source<JSONType> src) {
@@ -131,9 +134,19 @@ public abstract class JSONReader<T> {
                     if (word != JSONType.COLON)
                         throw new RuntimeException();
                     word = src.next();
-                    if (st != null)
-                        st.set(obj, ForAny(st.getIType()).read(word, src));// TODO
-                    else
+                    if (st != null) {
+                        IType fieldType = st.getIType();
+                        switch (fieldType.getFlag()) {
+                            case Param:
+                            case Variable:
+                                fieldType = Reflection.Util.replaceVariable(fieldType,
+                                        clazz.getTypeParameters(), type.getParams());
+                                break;
+                            default:
+                                break;
+                        }
+                        st.set(obj, ForAny(fieldType).read(word, src));// TODO
+                    } else
                         ForObject.read(word, src);// TODO
                 }
                 return obj;
@@ -231,7 +244,7 @@ public abstract class JSONReader<T> {
             } else if (isReference(clz)) {
                 reader = creator(ForAny(getParamIType(type, 0)), clazz.getCreator());
             } else
-                reader = ForObject(clazz);
+                reader = ForObject(type);
             readerMap.put(type, reader);
         }
         return reader;

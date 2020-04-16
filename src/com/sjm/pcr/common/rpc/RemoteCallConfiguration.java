@@ -6,20 +6,27 @@ import com.sjm.core.mini.springboot.api.Autowired;
 import com.sjm.core.mini.springboot.api.Component;
 import com.sjm.core.mini.springboot.api.DependsOn;
 import com.sjm.core.mini.springboot.api.FactoryBean;
-import com.sjm.core.mini.springboot.support.AnnotationBeanDefinition;
-import com.sjm.core.mini.springboot.support.AnnotationBeanRegister;
+import com.sjm.core.mini.springboot.ext.AnnotationBeanDefinition;
+import com.sjm.core.mini.springboot.ext.AnnotationBeanRegister;
 
 @Component
-public class RemoteConfiguration implements AnnotationBeanRegister<Remote> {
+public class RemoteCallConfiguration implements AnnotationBeanRegister<Remote> {
 
     @Override
     public AnnotationBeanDefinition register(Remote ann, Class<?> clazz) {
-        return new AnnotationBeanDefinition(RemoteFactoryBean.class, clazz,
-                ann.className().isEmpty() ? null : ann.className(),
-                ann.beanName().isEmpty() ? null : ann.beanName(), ann.remote());
+        String remoteClassName = null;
+        if (ann.clazz() != Object.class)
+            remoteClassName = ann.clazz().getName();
+        else if (!ann.className().isEmpty())
+            remoteClassName = ann.className();
+        String remoteBeanName = null;
+        if (!ann.beanName().isEmpty())
+            remoteBeanName = ann.beanName();
+        return new AnnotationBeanDefinition(ann.value(), RemoteFactoryBean.class, clazz,
+                remoteClassName, remoteBeanName, ann.remote());
     }
 
-    @DependsOn("com.sjm.pcr.common.rpc.impl")
+    @DependsOn("com.sjm.pcr.common.rpc.RemoteCall")
     public static class RemoteFactoryBean implements FactoryBean<Object> {
         @Autowired
         private ApplicationContext applicationContext;

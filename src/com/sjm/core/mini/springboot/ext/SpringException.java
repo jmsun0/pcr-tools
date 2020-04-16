@@ -1,4 +1,4 @@
-package com.sjm.core.mini.springboot.support;
+package com.sjm.core.mini.springboot.ext;
 
 public class SpringException extends RuntimeException {
     private static final long serialVersionUID = 1L;

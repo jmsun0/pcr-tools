@@ -56,6 +56,7 @@ public abstract class JSONWriter<T> {
 
     public static void writeMap(Map<String, Object> value, MyStringBuilder sb) {
         sb.append('{');
+        int beforeLen = sb.length();
         if (!value.isEmpty()) {
             for (Map.Entry<String, Object> e : value.entrySet()) {
                 Object v = e.getValue();
@@ -66,8 +67,9 @@ public abstract class JSONWriter<T> {
                     sb.append(',');
                 }
             }
-            sb.deleteEnd();
         }
+        if (sb.length() != beforeLen)
+            sb.deleteEnd();
         sb.append('}');
     }
 
@@ -101,6 +103,7 @@ public abstract class JSONWriter<T> {
         sb.append('{');
         Collection<Reflection.Getter> gs =
                 Reflection.forClass(value.getClass()).getGetterMap().values();
+        int beforeLen = sb.length();
         if (!gs.isEmpty()) {
             for (Reflection.Getter g : gs) {
                 Object v = g.get(value);
@@ -111,8 +114,9 @@ public abstract class JSONWriter<T> {
                     sb.append(',');
                 }
             }
-            sb.deleteEnd();
         }
+        if (sb.length() != beforeLen)
+            sb.deleteEnd();
         sb.append('}');
     }
 
@@ -155,7 +159,7 @@ public abstract class JSONWriter<T> {
     public static JSONWriter<Character> ForCharacter = new JSONWriter<Character>() {
         @Override
         public void write(Character value, MyStringBuilder sb) {
-            sb.append((char) value);
+            sb.append('\"').appendEscape((char) value).append('\"');
         }
     };
     public static JSONWriter<Short> ForShort = new JSONWriter<Short>() {
@@ -203,19 +207,19 @@ public abstract class JSONWriter<T> {
     public static JSONWriter<String> ForString = new JSONWriter<String>() {
         @Override
         public void write(String value, MyStringBuilder sb) {
-            sb.append(value);
+            sb.append('\"').appendEscape(value, null, -1, -1).append('\"');
         }
     };
     public static JSONWriter<byte[]> ForBytes = new JSONWriter<byte[]>() {
         @Override
         public void write(byte[] value, MyStringBuilder sb) {
-            sb.appendBase64(value);
+            sb.append('\"').appendBase64(value).append('\"');
         }
     };
     public static JSONWriter<char[]> ForChars = new JSONWriter<char[]>() {
         @Override
         public void write(char[] value, MyStringBuilder sb) {
-            sb.append(value);
+            sb.append('\"').appendEscape(value, null, -1, -1).append('\"');
         }
     };
     public static JSONWriter<Object> ForDoubleQuotation = new JSONWriter<Object>() {
@@ -245,13 +249,13 @@ public abstract class JSONWriter<T> {
     public static JSONWriter<File> ForFile = new JSONWriter<File>() {
         @Override
         public void write(File value, MyStringBuilder sb) {
-            sb.append(value.getPath());
+            sb.append('\'').appendEscape(value.getPath(), null, -1, -1).append('\'');
         }
     };
     public static JSONWriter<Class<?>> ForClass = new JSONWriter<Class<?>>() {
         @Override
         public void write(Class<?> value, MyStringBuilder sb) {
-            sb.append(value.getName());
+            sb.append('\'').append(value.getName()).append('\'');
         }
     };
     static {
@@ -273,6 +277,7 @@ public abstract class JSONWriter<T> {
         setWriter(Timestamp.class, JSONWriter.ForDate);
         setWriter(Calendar.class, JSONWriter.ForCalendar);
         setWriter(File.class, JSONWriter.ForFile);
+        setWriter(Class.class, JSONWriter.ForClass);
         setWriter(JSONObject.class, ForJSONObject);
         setWriter(JSONArray.class, ForJSONArray);
     }

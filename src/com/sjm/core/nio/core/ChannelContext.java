@@ -6,6 +6,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -16,6 +18,7 @@ public class ChannelContext implements Closeable {
     public Selector selector;
     public SelectionKey key;
     public ByteBufferPool bufferPool;
+    public Map<String, Object> attributes = new HashMap<>();
 
     public ChannelHandler decoder;// 读处理器
     public PacketProcesser processer;// 消息输出器

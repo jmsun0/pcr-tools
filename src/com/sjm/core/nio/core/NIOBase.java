@@ -12,7 +12,7 @@ import com.sjm.core.logger.Logger;
 import com.sjm.core.logger.LoggerFactory;
 import com.sjm.core.util.Misc;
 
-public abstract class NIOBase extends Thread implements PacketProcesser {
+public abstract class NIOBase implements PacketProcesser, Runnable {
     static final Logger logger = LoggerFactory.getLogger(NIOBase.class);
 
     protected Closeable channel;
@@ -39,6 +39,7 @@ public abstract class NIOBase extends Thread implements PacketProcesser {
     @Override
     public void run() {
         try {
+            isOpen = true;
             selector = Selector.open();
             channel = openChannel();
             handler.onStartup(this);
@@ -99,6 +100,10 @@ public abstract class NIOBase extends Thread implements PacketProcesser {
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
+    }
+
+    public void start() {
+        new Thread(this).start();
     }
 
     public void shutdown() {

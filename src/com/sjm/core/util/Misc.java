@@ -1,7 +1,11 @@
 package com.sjm.core.util;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Date;
@@ -314,5 +318,19 @@ public class Misc {
             error = error.getCause();
         }
         return null;
+    }
+
+    public static byte[] toBytes(Object obj) throws IOException {
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                ObjectOutputStream oos = new ObjectOutputStream(baos);) {
+            oos.writeObject(obj);
+            return baos.toByteArray();
+        }
+    }
+
+    public static Object toObject(byte[] bytes) throws IOException, ClassNotFoundException {
+        try (ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(bytes));) {
+            return ois.readObject();
+        }
     }
 }

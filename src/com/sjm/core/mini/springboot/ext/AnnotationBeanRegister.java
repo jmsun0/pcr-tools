@@ -1,4 +1,4 @@
-package com.sjm.core.mini.springboot.support;
+package com.sjm.core.mini.springboot.ext;
 
 import java.lang.annotation.Annotation;
 

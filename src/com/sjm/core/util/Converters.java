@@ -497,6 +497,22 @@ public class Converters {
             return null;
         }
     };
+    public static final Converter<Class<?>, Object> ToClass = new Converter<Class<?>, Object>() {
+        @Override
+        public Class<?> convert(Object data) {
+            if (data == null)
+                return null;
+            if (data instanceof Class<?>)
+                return (Class<?>) data;
+            if (data instanceof String) {
+                try {
+                    return Reflection.forName((String) data).getClazz();
+                } catch (Exception e) {
+                }
+            }
+            return null;
+        }
+    };
     public static final Converter<List, Object> ToList = new Converter<List, Object>() {
         @Override
         public List convert(Object data) {
@@ -642,6 +658,7 @@ public class Converters {
         converterMap.put(java.sql.Date.class, ToSQLDate);
         converterMap.put(Timestamp.class, ToTimestamp);
         converterMap.put(File.class, ToFile);
+        converterMap.put(Class.class, ToClass);
 
         converterMap.put(List.class, ToList);
         converterMap.put(Collection.class, ToList);

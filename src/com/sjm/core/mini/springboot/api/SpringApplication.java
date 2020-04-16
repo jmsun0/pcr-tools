@@ -6,6 +6,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,10 +18,10 @@ import java.util.UUID;
 
 import com.sjm.core.logger.Logger;
 import com.sjm.core.logger.LoggerFactory;
-import com.sjm.core.mini.springboot.support.AnnotationBeanDefinition;
-import com.sjm.core.mini.springboot.support.AnnotationBeanRegister;
-import com.sjm.core.mini.springboot.support.ClassScaner;
-import com.sjm.core.mini.springboot.support.SpringException;
+import com.sjm.core.mini.springboot.ext.AnnotationBeanDefinition;
+import com.sjm.core.mini.springboot.ext.AnnotationBeanRegister;
+import com.sjm.core.mini.springboot.ext.ClassScaner;
+import com.sjm.core.mini.springboot.ext.SpringException;
 import com.sjm.core.util.Converters;
 import com.sjm.core.util.Lists;
 import com.sjm.core.util.Misc;
@@ -48,7 +49,6 @@ public class SpringApplication {
     }
 
     private Class<?> clazz;
-    private String[] args;
     private Map<Object, Object> beanMap = new HashMap<>();
     private List<BeanDefinition> beanList = new ArrayList<>();
     private Map<Class<?>, List<Class<?>>> annotationClassesMap = new HashMap<>();
@@ -59,7 +59,6 @@ public class SpringApplication {
     }
 
     public void run(String... args) throws Exception {
-        this.args = args;
         SpringBootApplication app = clazz.getAnnotation(SpringBootApplication.class);
         if (app == null) {
             logger.error("{} is not a SpringBootApplication,stopped", clazz);
@@ -99,10 +98,35 @@ public class SpringApplication {
             initBean(def);
         }
 
+        for (BeanDefinition def : beanList) {
+            ReflectionCacheData data = getReflectionCacheData(def.type);
+            if (!data.lazyAutowiredFields.isEmpty()) {
+                for (int i = 0; i < data.lazyAutowiredFields.size(); i++) {
+                    Field field = data.lazyAutowiredFields.get(i);
+                    field.set(def.bean, getBean(field.getType()));
+                }
+            }
+
+            if (!data.lazyResourceFields.isEmpty()) {
+                for (int i = 0; i < data.lazyResourceFields.size(); i++) {
+                    Field field = data.lazyResourceFields.get(i);
+                    Resource res = data.lazyResourceAnnotations.get(i);
+                    field.set(def.bean, getBean(res.name()));
+                }
+            }
+        }
+
+        logger.info("{} started OK", clazz.getSimpleName());
+
+        for (BeanDefinition def : beanList) {
+            if (def.bean instanceof CommandLineRunner) {
+                ((CommandLineRunner) def.bean).run(args);
+            }
+        }
+
         beanList = null;
         annotationClassesMap = null;
         reflectionCacheDataMap = null;
-        logger.info("{} started OK", clazz.getSimpleName());
     }
 
     private void assignDependsOn() {
@@ -219,6 +243,10 @@ public class SpringApplication {
             def.factoryName = factoryDefName;
             def.type = beanClass;
             putBeanDefinition(def);
+
+            if (Misc.isNotEmpty(annDef.name)) {
+                putBeanDefinition(annDef.name, def);
+            }
         }
     }
 
@@ -242,32 +270,59 @@ public class SpringApplication {
     }
 
     private void initBean(BeanDefinition def) throws Exception {
-        if (def.dependsOn != null) {
-            for (Object dep : def.dependsOn) {
-                initBean(getBeanDefinition(dep));
+        try {
+            if (def.dependsOn != null) {
+                for (Object dep : def.dependsOn) {
+                    Object defOrList = beanMap.get(dep);
+                    if (defOrList == null)
+                        throw new SpringException("Depends Bean[" + dep + "] not found");
+                    if (defOrList instanceof List) {
+                        @SuppressWarnings("unchecked")
+                        List<BeanDefinition> list = (List<BeanDefinition>) defOrList;
+                        for (BeanDefinition ddef : list) {
+                            initBean(ddef);
+                        }
+                    } else {
+                        initBean((BeanDefinition) defOrList);
+                    }
+                }
+            }
+            if (def.bean == null) {
+                BeanDefinition factoryDef = getBeanDefinition(def.factoryName);
+                initBean(factoryDef);
+                FactoryBean<?> factory = (FactoryBean<?>) factoryDef.bean;
+                def.bean = factory.getObject();
+
+                beanPostProcess(def.bean, def.type);
+            }
+        } catch (Exception e) {
+            logger.error("Bean [{}] init fail", def.type);
+            throw e;
+        }
+    }
+
+    private void beanPostProcess(Object bean, Class<?> type) throws Exception {
+        ReflectionCacheData data = getReflectionCacheData(type);
+
+        if (!data.autowiredFields.isEmpty()) {
+            for (int i = 0; i < data.autowiredFields.size(); i++) {
+                Field field = data.autowiredFields.get(i);
+                field.set(bean, getBean(field.getType()));
             }
         }
-        if (def.bean == null) {
-            BeanDefinition factoryDef = getBeanDefinition(def.factoryName);
-            initBean(factoryDef);
-            FactoryBean<?> factory = (FactoryBean<?>) factoryDef.bean;
-            def.bean = factory.getObject();
 
-            ReflectionCacheData data = getReflectionCacheData(def.type);
-            for (Field field : data.autowiredFields) {
-                field.setAccessible(true);
-                field.set(def.bean, getBean(field.getType()));
-            }
+        if (!data.resourceFields.isEmpty()) {
             for (int i = 0; i < data.resourceFields.size(); i++) {
                 Field field = data.resourceFields.get(i);
                 Resource res = data.resourceAnnotations.get(i);
-                field.setAccessible(true);
-                field.set(def.bean, getBean(res.name()));
+                field.set(bean, getBean(res.name()));
             }
+        }
+
+        if (!data.valueFields.isEmpty()) {
             for (int i = 0; i < data.valueFields.size(); i++) {
                 Field field = data.valueFields.get(i);
                 Value val = data.valueAnnotations.get(i);
-                field.setAccessible(true);
                 String exp = val.value();
                 int start = exp.indexOf('{');
                 int end = exp.lastIndexOf('}');
@@ -280,16 +335,14 @@ public class SpringApplication {
                 else
                     value = System.getProperty(exp.substring(start + 1, colon),
                             exp.substring(colon + 1, end));
-                field.set(def.bean, Converters.convert(value, field.getType()));
+                field.set(bean, Converters.convert(value, field.getType()));
             }
-            for (Method method : data.postConstructMethods) {
-                method.setAccessible(true);
-                method.invoke(def.bean);
-            }
-            if (def.bean instanceof CommandLineRunner) {
-                ((CommandLineRunner) def.bean).run(args);
-            }
+        }
 
+        if (!data.postConstructMethods.isEmpty()) {
+            for (Method method : data.postConstructMethods) {
+                method.invoke(bean);
+            }
         }
     }
 
@@ -351,8 +404,12 @@ public class SpringApplication {
         public List<Value> valueAnnotations = new ArrayList<>();
         public List<Field> autowiredFields = new ArrayList<>();
         public List<Autowired> autowiredAnnotations = new ArrayList<>();
+        public List<Field> lazyAutowiredFields = new ArrayList<>();
+        public List<Autowired> lazyAutowiredAnnotations = new ArrayList<>();
         public List<Field> resourceFields = new ArrayList<>();
         public List<Resource> resourceAnnotations = new ArrayList<>();
+        public List<Field> lazyResourceFields = new ArrayList<>();
+        public List<Resource> lazyResourceAnnotations = new ArrayList<>();
         public List<Method> beanMethods = new ArrayList<>();
         public List<Bean> beanAnnotations = new ArrayList<>();
         public List<Method> postConstructMethods = new ArrayList<>();
@@ -367,17 +424,44 @@ public class SpringApplication {
                 Field[] fields = classTmp.getDeclaredFields();
                 for (Field field : fields) {
                     Annotation[] anns = field.getDeclaredAnnotations();
-                    for (Annotation ann : anns) {
+                    Value valueAnn = null;
+                    Autowired autowiredAnn = null;
+                    Lazy lazyAnn = null;
+                    Resource resourceAnn = null;
+                    for (int i = 0; i < anns.length; i++) {
+                        Annotation ann = anns[i];
                         Class<? extends Annotation> annType = ann.annotationType();
                         if (annType == Value.class) {
-                            data.valueFields.add(field);
-                            data.valueAnnotations.add((Value) ann);
+                            valueAnn = (Value) ann;
                         } else if (annType == Autowired.class) {
-                            data.autowiredFields.add(field);
-                            data.autowiredAnnotations.add((Autowired) ann);
+                            autowiredAnn = (Autowired) ann;
                         } else if (annType == Resource.class) {
+                            resourceAnn = (Resource) ann;
+                        } else if (annType == Lazy.class) {
+                            lazyAnn = (Lazy) ann;
+                        }
+                    }
+                    if (valueAnn != null) {
+                        field.setAccessible(true);
+                        data.valueFields.add(field);
+                        data.valueAnnotations.add(valueAnn);
+                    } else if (autowiredAnn != null) {
+                        field.setAccessible(true);
+                        if (lazyAnn != null) {
+                            data.lazyAutowiredFields.add(field);
+                            data.lazyAutowiredAnnotations.add(autowiredAnn);
+                        } else {
+                            data.autowiredFields.add(field);
+                            data.autowiredAnnotations.add(autowiredAnn);
+                        }
+                    } else if (resourceAnn != null) {
+                        field.setAccessible(true);
+                        if (lazyAnn != null) {
+                            data.lazyResourceFields.add(field);
+                            data.lazyResourceAnnotations.add(resourceAnn);
+                        } else {
                             data.resourceFields.add(field);
-                            data.resourceAnnotations.add((Resource) ann);
+                            data.resourceAnnotations.add(resourceAnn);
                         }
                     }
                 }
@@ -387,9 +471,11 @@ public class SpringApplication {
                     for (Annotation ann : anns) {
                         Class<? extends Annotation> annType = ann.annotationType();
                         if (classTmp == clazz && annType == Bean.class) {
+                            method.setAccessible(true);
                             data.beanMethods.add(method);
                             data.beanAnnotations.add((Bean) ann);
                         } else if (annType == PostConstruct.class) {
+                            method.setAccessible(true);
                             data.postConstructMethods.add(method);
                         }
                     }
@@ -467,5 +553,11 @@ public class SpringApplication {
         public Class<?> type;
         public Object[] dependsOn;
         public String factoryName;
+
+        @Override
+        public String toString() {
+            return "bean=" + bean + ",type=" + type + ",dependsOn=" + Arrays.toString(dependsOn)
+                    + ",factoryName=" + factoryName;
+        }
     }
 }
