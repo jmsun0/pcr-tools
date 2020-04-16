@@ -293,7 +293,7 @@ public class SpringApplication {
                 FactoryBean<?> factory = (FactoryBean<?>) factoryDef.bean;
                 def.bean = factory.getObject();
 
-                beanPostProcess(def.bean, def.type);
+                beanPostProcess(def.bean);
             }
         } catch (Exception e) {
             logger.error("Bean [{}] init fail", def.type);
@@ -301,8 +301,8 @@ public class SpringApplication {
         }
     }
 
-    private void beanPostProcess(Object bean, Class<?> type) throws Exception {
-        ReflectionCacheData data = getReflectionCacheData(type);
+    private void beanPostProcess(Object bean) throws Exception {
+        ReflectionCacheData data = getReflectionCacheData(bean.getClass());
 
         if (!data.autowiredFields.isEmpty()) {
             for (int i = 0; i < data.autowiredFields.size(); i++) {

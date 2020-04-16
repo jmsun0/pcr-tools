@@ -8,6 +8,7 @@ import com.sjm.core.mini.springboot.api.Component;
 import com.sjm.pcr.common.rpc.RemoteContext;
 import com.sjm.pcr.common.service.ClientService;
 import com.sjm.pcr.common.service.CommonService;
+import com.sjm.pcr.common.service.MonitorService;
 
 @Component
 public class ControlMain implements CommandLineRunner {
@@ -19,11 +20,19 @@ public class ControlMain implements CommandLineRunner {
     @Autowired
     private ClientService clientManager;
 
+    @Autowired
+    private MonitorService monitorService;
+
     @Override
     public void run(String... args) throws Exception {
         System.out.println(clientManager.listClient());
         RemoteContext.get().setRemoteName("xxx");
-        System.out.println(commonService.getValue());
+        // ResInfo res = commonService.runCmd(null, null, "ps");
+        // System.out.println(res);
 
+        System.out.println(monitorService.getWindowSize());
+        // monitorService.input("123456");
+
+        System.exit(0);
     }
 }

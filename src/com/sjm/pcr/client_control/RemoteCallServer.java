@@ -12,7 +12,7 @@ import com.sjm.pcr.common.rpc.RemoteContext;
 public class RemoteCallServer implements RemoteCall {
 
     @Autowired
-    private PCRClientHandler handler;
+    private BaseClientHandler handler;
 
     @Autowired
     private RemoteCallSocketProcessor remoteCallSocketProcessor;

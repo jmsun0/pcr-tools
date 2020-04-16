@@ -10,8 +10,8 @@ import com.sjm.core.mini.springboot.api.Component;
 import com.sjm.core.mini.springboot.api.Value;
 
 @Component
-public class PCRConfiguration {
-    static final Logger logger = LoggerFactory.getLogger(PCRConfiguration.class);
+public class CommonConfiguration {
+    static final Logger logger = LoggerFactory.getLogger(CommonConfiguration.class);
 
     @Value("${pcr.thread.pool.size:10}")
     private int threadPoolSize;

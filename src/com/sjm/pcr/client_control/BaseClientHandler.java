@@ -21,26 +21,26 @@ import com.sjm.core.util.Misc;
 import com.sjm.pcr.common.rpc.RemoteCallSocketProcessor;
 
 @Component
-public class PCRClientHandler extends EventHandler {
-    static final Logger logger = LoggerFactory.getLogger(PCRClientHandler.class);
+public class BaseClientHandler extends EventHandler {
+    static final Logger logger = LoggerFactory.getLogger(BaseClientHandler.class);
 
     @Value("${pcr.server.host:127.0.0.1}")
-    private String host;
+    protected String host;
 
     @Value("${pcr.server.port:9009}")
-    private int port;
+    protected int port;
 
     @Value("${pcr.server.buffer-size:4096}")
-    private int bufferSize;
+    protected int bufferSize;
 
     @Autowired
-    private RemoteCallSocketProcessor remoteCallSocketProcessor;
+    protected RemoteCallSocketProcessor remoteCallSocketProcessor;
 
     @Autowired
-    private ExecutorService executor;
+    protected ExecutorService executor;
 
-    private NIOClient client;
-    private ChannelContext ctx;
+    protected NIOClient client;
+    protected ChannelContext ctx;
 
     @PostConstruct
     private void init() {
@@ -77,10 +77,6 @@ public class PCRClientHandler extends EventHandler {
     public void onClose(ChannelContext ctx) throws IOException {
         logger.debug("Channel {} has been closed", ctx);
         this.ctx = null;
-        executor.submit(() -> {
-            Misc.sleep(3000);
-            client.start();
-        });
     }
 
     public ChannelContext getChannelContext() {

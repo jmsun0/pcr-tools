@@ -26,12 +26,6 @@ import com.sjm.pcr.common.misc.Promise;
 public class RemoteCallSocketProcessor {
     static final Logger logger = LoggerFactory.getLogger(RemoteCallSocketProcessor.class);
 
-    public static void main(String[] args) {
-        System.out.println(JSONObject.parseObject(
-                "{\"flag\":3,\"data\":{\"returnValue\":[],\"returnType\":\"java.util.ArrayList\"},\"uuid\":\"3b932791-ad45-4532-9b00-0da1cd971d7b\"}",
-                RemoteCallRequest.class));
-    }
-
     @Autowired
     private RemoteCallHandler remoteCallHandler;
 

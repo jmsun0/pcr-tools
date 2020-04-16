@@ -48,7 +48,7 @@ public class RemoteCallHandler {
             }
             return new RemoteCallResponse(returnValue, null);
         } catch (Throwable e) {
-            logger.error("handle remote call fail,msg={}", e.getMessage());
+            logger.error(e.getMessage(), e);
             return new RemoteCallResponse(null, e.getCause() != null ? e.getCause() : e);
         }
     }

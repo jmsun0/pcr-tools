@@ -215,15 +215,12 @@ public class Misc {
 
     public static String[] getAllGroup(Pattern pattern, String str) {
         Matcher mc = pattern.matcher(str);
-        if (mc.matches()) {
-            mc.reset();
-            if (mc.find()) {
-                int count = mc.groupCount();
-                String[] result = new String[count];
-                for (int i = 0; i < count; i++)
-                    result[i] = mc.group(i + 1);
-                return result;
-            }
+        if (mc.find()) {
+            int count = mc.groupCount();
+            String[] result = new String[count];
+            for (int i = 0; i < count; i++)
+                result[i] = mc.group(i + 1);
+            return result;
         }
         return null;
     }
