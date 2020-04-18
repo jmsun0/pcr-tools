@@ -50,7 +50,7 @@ public class MonitorServiceForLinux implements MonitorService {
             File tmp = Files.createTempFile(null, ".png").toFile();
             try {
                 ImageIO.write(image, "png", tmp);
-                return CvSupport.read(tmp.getPath());
+                return CvSupport.getInstance().read(tmp.getPath());
             } finally {
                 tmp.delete();
             }

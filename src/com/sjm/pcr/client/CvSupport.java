@@ -1,56 +1,48 @@
 package com.sjm.pcr.client;
 
+import com.sjm.core.logger.Logger;
+import com.sjm.core.logger.LoggerFactory;
 import com.sjm.pcr.common.model.MatchResult;
 import com.sjm.pcr.common.model.Picture;
 import com.sjm.pcr.common.model.Rect;
 
-public class CvSupport {
+public abstract class CvSupport {
+    static final Logger logger = LoggerFactory.getLogger(CvSupport.class);
 
-    public static Picture newPicture() {
-        return null;
+    private static CvSupport inst;
+    static {
+        try {
+
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+        }
     }
 
-    public static void recycle(Picture pic) {
-
+    public static CvSupport getInstance() {
+        return inst;
     }
 
-    public static Picture read(String path) {
-        return null;
-    }
+    public abstract Picture newPicture();
 
-    public static void write(String path, Picture pic) {
+    public abstract void recycle(Picture pic);
 
-    }
+    public abstract Picture read(String path);
 
-    public static Picture resize(Picture pic, double widthResize, double heightResize) {
-        return null;
-    }
+    public abstract void write(String path, Picture pic);
 
-    public static Picture gray(Picture pic) {
-        return null;
-    }
+    public abstract Picture resize(Picture pic, double widthResize, double heightResize);
 
-    public static Picture bitNot(Picture pic) {
-        return null;
-    }
+    public abstract Picture gray(Picture pic);
 
-    public static Picture threshold(Picture pic, double thresh, double maxval, int type) {
-        return null;
-    }
+    public abstract Picture bitNot(Picture pic);
 
-    public static Picture binary(Picture pic) {
-        return null;
-    }
+    public abstract Picture threshold(Picture pic, double thresh, double maxval, int type);
 
-    public static MatchResult match(Picture pic, Picture sub) {
-        return null;
-    }
+    public abstract Picture binary(Picture pic);
 
-    public static void rectangle(Picture pic, Rect rect) {
+    public abstract MatchResult match(Picture pic, Picture sub);
 
-    }
+    public abstract void rectangle(Picture pic, Rect rect);
 
-    public static String recognize(Picture pic, String lang, String whitelist) {
-        return null;
-    }
+    public abstract String recognize(Picture pic, String lang, String whitelist);
 }

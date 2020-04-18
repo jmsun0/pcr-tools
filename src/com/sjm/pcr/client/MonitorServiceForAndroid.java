@@ -54,7 +54,7 @@ public class MonitorServiceForAndroid implements MonitorService {
         }
         try {
             runCmd("screencap", "-p", tmp.getPath());
-            return CvSupport.read(tmp.getPath());
+            return CvSupport.getInstance().read(tmp.getPath());
         } finally {
             tmp.delete();
         }
