@@ -1,4 +1,4 @@
-#!/bin/sh -x
+#!/bin/sh
 
 PC_DIR=pcr-pc
 ANDROID_DIR=pcr-android
