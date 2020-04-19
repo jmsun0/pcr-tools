@@ -4,7 +4,6 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" path="resources"/>
 	<classpathentry kind="src" path="test"/>
-	<classpathentry kind="lib" path="lib/rhino1_7R2.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/mini-springboot"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
