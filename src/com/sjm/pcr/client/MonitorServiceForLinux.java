@@ -14,15 +14,33 @@ import javax.imageio.ImageIO;
 
 import com.sjm.core.logger.Logger;
 import com.sjm.core.logger.LoggerFactory;
+import com.sjm.core.mini.springboot.api.Autowired;
+import com.sjm.core.mini.springboot.api.Component;
+import com.sjm.core.mini.springboot.api.Condition;
+import com.sjm.core.mini.springboot.api.Conditional;
 import com.sjm.core.util.Misc;
+import com.sjm.core.util.Platform;
 import com.sjm.pcr.common.exception.ServiceException;
-import com.sjm.pcr.common.model.Picture;
 import com.sjm.pcr.common.model.Rect;
 import com.sjm.pcr.common.model.RectSize;
-import com.sjm.pcr.common.service.MonitorService;
+import com.sjm.pcr.common_component.cv.Mat;
+import com.sjm.pcr.common_component.cv.opencv_imgcodecs;
+import com.sjm.pcr.common_component.service.MonitorService;
 
+@Conditional({MonitorServiceForLinux.IsLinuxCondition.class})
+@Component
 public class MonitorServiceForLinux implements MonitorService {
     static final Logger logger = LoggerFactory.getLogger(MonitorServiceForLinux.class);
+
+    public static class IsLinuxCondition implements Condition {
+        @Override
+        public boolean matches(Class<?> clazz) {
+            return Platform.isLinux();
+        }
+    }
+
+    @Autowired
+    private opencv_imgcodecs opencv_imgcodecs;
 
     public static void main(String[] args) {}
 
@@ -43,14 +61,14 @@ public class MonitorServiceForLinux implements MonitorService {
     }
 
     @Override
-    public Picture snapshot(Rect rect) {
+    public Mat snapshot(Rect rect) {
         try {
             BufferedImage image = robot
                     .createScreenCapture(new Rectangle(rect.x, rect.y, rect.width, rect.height));
             File tmp = Files.createTempFile(null, ".png").toFile();
             try {
                 ImageIO.write(image, "png", tmp);
-                return CvSupport.getInstance().read(tmp.getPath());
+                return opencv_imgcodecs.imread(tmp.getPath());
             } finally {
                 tmp.delete();
             }

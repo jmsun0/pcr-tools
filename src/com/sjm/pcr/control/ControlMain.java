@@ -5,16 +5,16 @@ import com.sjm.core.logger.LoggerFactory;
 import com.sjm.core.mini.springboot.api.Autowired;
 import com.sjm.core.mini.springboot.api.CommandLineRunner;
 import com.sjm.core.mini.springboot.api.Component;
-import com.sjm.pcr.common.rpc.RemoteContext;
-import com.sjm.pcr.common.service.ClientService;
-import com.sjm.pcr.common.service.CommonService;
-import com.sjm.pcr.common.service.MonitorService;
+import com.sjm.core.mini.springboot.api.Resource;
+import com.sjm.pcr.common_component.service.ClientService;
+import com.sjm.pcr.common_component.service.CommonService;
+import com.sjm.pcr.common_component.service.MonitorService;
 
 @Component
 public class ControlMain implements CommandLineRunner {
     static final Logger logger = LoggerFactory.getLogger(ControlMain.class);
 
-    @Autowired
+    @Resource(name = "CommonServiceRemote")
     private CommonService commonService;
 
     @Autowired
@@ -25,14 +25,14 @@ public class ControlMain implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        System.out.println(clientManager.listClient());
-        RemoteContext.get().setRemoteName("xxx");
+        // System.out.println(clientManager.listClient());
+        // RemoteContext.get().setRemoteName("xxx");
         // ResInfo res = commonService.runCmd(null, null, "ps");
         // System.out.println(res);
 
-        System.out.println(monitorService.getWindowSize());
+        // System.out.println(monitorService.getWindowSize());
         // monitorService.input("123456");
 
-        System.exit(0);
+        // System.exit(0);
     }
 }

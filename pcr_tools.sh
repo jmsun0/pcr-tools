@@ -1,9 +1,10 @@
-#!/bin/sh
+#!/bin/sh -x
 
 PC_DIR=pcr-pc
 ANDROID_DIR=pcr-android
 
 ANDROID_TMP_DIR=/data/local/tmp
+TAR="$ANDROID_TMP_DIR/busybox tar"
 
 cd /data/project/project_dev/pcr-tools
 

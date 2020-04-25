@@ -6,13 +6,13 @@ import java.util.List;
 import com.sjm.core.mini.springboot.api.Autowired;
 import com.sjm.core.mini.springboot.api.Component;
 import com.sjm.core.mini.springboot.api.Lazy;
-import com.sjm.pcr.common.rpc.RemoteCall;
-import com.sjm.pcr.common.rpc.RemoteCallRequest;
-import com.sjm.pcr.common.rpc.RemoteCallResponse;
-import com.sjm.pcr.common.rpc.RemoteCallSocketProcessor;
-import com.sjm.pcr.common.rpc.RemoteContext;
-import com.sjm.pcr.common.rpc.SerializableRemoteCallResponse;
-import com.sjm.pcr.common.service.ClientService;
+import com.sjm.pcr.common_component.rpc.RemoteCall;
+import com.sjm.pcr.common_component.rpc.RemoteCallRequest;
+import com.sjm.pcr.common_component.rpc.RemoteCallResponse;
+import com.sjm.pcr.common_component.rpc.RemoteCallSocketProcessor;
+import com.sjm.pcr.common_component.rpc.RemoteContext;
+import com.sjm.pcr.common_component.rpc.SerializableRemoteCallResponse;
+import com.sjm.pcr.common_component.service.ClientService;
 
 @Component
 public class RemoteCallClient implements RemoteCall {

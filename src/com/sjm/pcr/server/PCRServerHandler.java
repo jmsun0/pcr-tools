@@ -12,8 +12,8 @@ import java.util.concurrent.ExecutorService;
 import com.sjm.core.logger.Logger;
 import com.sjm.core.logger.LoggerFactory;
 import com.sjm.core.mini.springboot.api.Autowired;
+import com.sjm.core.mini.springboot.api.CommandLineRunner;
 import com.sjm.core.mini.springboot.api.Component;
-import com.sjm.core.mini.springboot.api.PostConstruct;
 import com.sjm.core.mini.springboot.api.Value;
 import com.sjm.core.nio.core.ByteBufferPool;
 import com.sjm.core.nio.core.ChannelContext;
@@ -26,14 +26,14 @@ import com.sjm.core.nio.ext.ByteArrayWithFilesEncoder;
 import com.sjm.core.util.Misc;
 import com.sjm.pcr.common.exception.ServiceException;
 import com.sjm.pcr.common.misc.ChannelContextHolder;
-import com.sjm.pcr.common.rpc.RemoteCallRequest;
-import com.sjm.pcr.common.rpc.RemoteCallResponse;
-import com.sjm.pcr.common.rpc.RemoteCallSocketProcessor;
-import com.sjm.pcr.common.rpc.SerializableRemoteCallResponse;
-import com.sjm.pcr.common.service.ClientService;
+import com.sjm.pcr.common_component.rpc.RemoteCallRequest;
+import com.sjm.pcr.common_component.rpc.RemoteCallResponse;
+import com.sjm.pcr.common_component.rpc.RemoteCallSocketProcessor;
+import com.sjm.pcr.common_component.rpc.SerializableRemoteCallResponse;
+import com.sjm.pcr.common_component.service.ClientService;
 
 @Component
-public class PCRServerHandler extends EventHandler implements ClientService {
+public class PCRServerHandler extends EventHandler implements CommandLineRunner, ClientService {
     static final Logger logger = LoggerFactory.getLogger(PCRServerHandler.class);
 
     @Value("${pcr.server.port:9009}")
@@ -51,11 +51,12 @@ public class PCRServerHandler extends EventHandler implements ClientService {
     private Map<ChannelContext, String> ctxNameMap = new ConcurrentHashMap<>();
     private Map<String, ChannelContext> nameCtxMap = new ConcurrentHashMap<>();
 
-    @PostConstruct
-    private void init() {
+    @Override
+    public void run(String... args) throws Exception {
         NIOServer server = new NIOServer(port, new ByteBufferPool(bufferSize),
                 new ByteArrayWithFilesEncoder(), new ByteArrayWithFilesDecoder(), this);
-        server.start();
+        // server.start();
+        server.run();
     }
 
     @Override
@@ -99,9 +100,17 @@ public class PCRServerHandler extends EventHandler implements ClientService {
 
     @Override
     public void register(String name) {
-        if (nameCtxMap.containsKey(name))
+        if (nameCtxMap.containsKey(name)) {
             throw new ServiceException("'" + name + "' is already exists");
-        ChannelContext ctx = ChannelContextHolder.get();
+        }
+        ChannelContext ctx = nameCtxMap.get(name);
+        if (ctx != null) {
+            if (ctx == ChannelContextHolder.get())
+                return;
+            else
+                throw new ServiceException("'" + name + "' is already exists");
+        }
+        ctx = ChannelContextHolder.get();
         ctxNameMap.put(ctx, name);
         nameCtxMap.put(name, ctx);
         logger.info("client [{}] has login", name);

@@ -5,7 +5,7 @@ import com.sjm.core.logger.LoggerFactory;
 import com.sjm.core.mini.springboot.api.SpringApplication;
 import com.sjm.core.mini.springboot.api.SpringBootApplication;
 
-@SpringBootApplication(scanBasePackages = {"com.sjm.pcr.server", "com.sjm.pcr.common"})
+@SpringBootApplication(scanBasePackages = {"com.sjm.pcr.server", "com.sjm.pcr.common_component"})
 public class PCRServer {
     static final Logger logger = LoggerFactory.getLogger(PCRServer.class);
 
