@@ -1,4 +1,4 @@
-package com.sjm.pcr.common_component.cv;
+package com.sjm.pcr.client_control.cv;
 
 import java.io.Closeable;
 

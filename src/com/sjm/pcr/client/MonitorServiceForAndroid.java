@@ -14,13 +14,12 @@ import com.sjm.core.mini.springboot.api.Condition;
 import com.sjm.core.mini.springboot.api.Conditional;
 import com.sjm.core.util.Misc;
 import com.sjm.core.util.Platform;
+import com.sjm.pcr.client_control.cv.Mat;
 import com.sjm.pcr.common.exception.ServiceException;
 import com.sjm.pcr.common.model.Rect;
 import com.sjm.pcr.common.model.RectSize;
 import com.sjm.pcr.common.model.ResInfo;
 import com.sjm.pcr.common.util.SystemUtil;
-import com.sjm.pcr.common_component.cv.CvUtil;
-import com.sjm.pcr.common_component.cv.Mat;
 import com.sjm.pcr.common_component.service.MonitorService;
 
 @Conditional({MonitorServiceForAndroid.IsAndroidCondition.class})
@@ -36,7 +35,7 @@ public class MonitorServiceForAndroid implements MonitorService {
     }
 
     @Autowired
-    private CvUtil cvUtil;
+    private CvUtilImpl cvUtil;
 
     private String runCmd(String... cmdArray) {
         ResInfo res = SystemUtil.runCmd(null, null, cmdArray);

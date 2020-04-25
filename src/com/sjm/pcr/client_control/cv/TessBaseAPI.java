@@ -1,4 +1,4 @@
-package com.sjm.pcr.common_component.cv;
+package com.sjm.pcr.client_control.cv;
 
 public interface TessBaseAPI extends CvObject {
     public int Init(String datapath, String language);

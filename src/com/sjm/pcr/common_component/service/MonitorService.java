@@ -1,8 +1,8 @@
 package com.sjm.pcr.common_component.service;
 
+import com.sjm.pcr.client_control.cv.Mat;
 import com.sjm.pcr.common.model.Rect;
 import com.sjm.pcr.common.model.RectSize;
-import com.sjm.pcr.common_component.cv.Mat;
 
 public interface MonitorService {
     public RectSize getWindowSize();

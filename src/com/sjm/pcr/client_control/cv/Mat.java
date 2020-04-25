@@ -1,4 +1,4 @@
-package com.sjm.pcr.common_component.cv;
+package com.sjm.pcr.client_control.cv;
 
 public interface Mat extends CvObject {
     public int rows();

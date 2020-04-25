@@ -1,4 +1,4 @@
-package com.sjm.pcr.common_component.cv;
+package com.sjm.pcr.client_control.cv;
 
 public interface Point extends CvObject {
     public int x();

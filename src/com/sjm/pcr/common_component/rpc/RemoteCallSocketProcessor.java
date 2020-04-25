@@ -55,7 +55,7 @@ public class RemoteCallSocketProcessor {
                 try {
                     RemoteCallResponse res = remoteCallHandler.hanleRemoteCall(req);
                     SerializableRemoteCallResponse sres = serializeResponse(res);
-                    sendMessae(ctx, MsgSign.FLAG_REMOTE_RESPONSE, uuid, sres, Lists.emptyList());
+                    sendMessage(ctx, MsgSign.FLAG_REMOTE_RESPONSE, uuid, sres, Lists.emptyList());
                 } finally {
                     ChannelContextHolder.remove();
                 }
@@ -86,14 +86,14 @@ public class RemoteCallSocketProcessor {
         String uuid = UUID.randomUUID().toString();
         Promise<RemoteCallResponse> pro = new Promise<>();
         remoteResultMap.put(uuid, pro);
-        sendMessae(ctx, MsgSign.FLAG_REMOTE_REQUEST, uuid, req, files);
+        sendMessage(ctx, MsgSign.FLAG_REMOTE_REQUEST, uuid, req, files);
         RemoteCallResponse result = pro.get(timeout);
         if (result == null)
             return new RemoteCallResponse(null, pro.getError());
         return result;
     }
 
-    public static void sendMessae(ChannelContext ctx, int flag, String uuid, Object data,
+    public static void sendMessage(ChannelContext ctx, int flag, String uuid, Object data,
             List<File> files) throws Exception {
         JSONObject resp = new JSONObject();
         resp.put("flag", flag);

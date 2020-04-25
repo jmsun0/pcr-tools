@@ -20,22 +20,22 @@ import com.sjm.core.mini.springboot.api.Condition;
 import com.sjm.core.mini.springboot.api.Conditional;
 import com.sjm.core.util.Misc;
 import com.sjm.core.util.Platform;
+import com.sjm.pcr.client_control.cv.Mat;
+import com.sjm.pcr.client_control.cv.opencv_imgcodecs;
 import com.sjm.pcr.common.exception.ServiceException;
 import com.sjm.pcr.common.model.Rect;
 import com.sjm.pcr.common.model.RectSize;
-import com.sjm.pcr.common_component.cv.Mat;
-import com.sjm.pcr.common_component.cv.opencv_imgcodecs;
 import com.sjm.pcr.common_component.service.MonitorService;
 
-@Conditional({MonitorServiceForLinux.IsLinuxCondition.class})
+@Conditional({MonitorServiceForPC.IsPCCondition.class})
 @Component
-public class MonitorServiceForLinux implements MonitorService {
-    static final Logger logger = LoggerFactory.getLogger(MonitorServiceForLinux.class);
+public class MonitorServiceForPC implements MonitorService {
+    static final Logger logger = LoggerFactory.getLogger(MonitorServiceForPC.class);
 
-    public static class IsLinuxCondition implements Condition {
+    public static class IsPCCondition implements Condition {
         @Override
         public boolean matches(Class<?> clazz) {
-            return Platform.isLinux();
+            return Platform.isLinux() || Platform.isWindows();
         }
     }
 

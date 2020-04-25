@@ -1,4 +1,4 @@
-package com.sjm.pcr.common_component.cv;
+package com.sjm.pcr.client_control.cv;
 
 public interface opencv_imgcodecs extends CvObject {
     public Mat imread(String path);
